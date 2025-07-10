@@ -36,25 +36,59 @@ def get_database_connection():
 # Função para carregar dados principais
 @st.cache_data
 def load_main_data():
-    """Carrega dados principais do banco"""
+    """Carrega dados principais do banco normalizado com descrições legíveis"""
     conn = get_database_connection()
     query = """
         SELECT 
-            diag_princ,
-            munic_res,
-            idade,
-            sexo,
-            val_tot,
-            dias_perm,
-            dt_inter,
-            dt_saida,
-            ano_cmpt,
-            mes_cmpt,
-            car_int
-        FROM internacoes
-        WHERE diag_princ IS NOT NULL
-        AND idade IS NOT NULL
-        AND val_tot IS NOT NULL
+            i.id as internacao_id,
+            i.numero_aih,
+            i.ano_competencia,
+            i.mes_competencia,
+            i.data_internacao,
+            i.data_saida,
+            i.dias_permanencia,
+            i.dias_uti_total,
+            i.gestacao_risco,
+            
+            -- Dados do paciente
+            p.idade_anos,
+            s.descricao as sexo,
+            p.codigo_municipio_residencia,
+            
+            -- Dados clínicos com descrições
+            cid.descricao as diagnostico_principal,
+            cid.capitulo as capitulo_cid,
+            cid.sensivel_atencao_basica,
+            ci.descricao as carater_internacao,
+            
+            -- Dados do estabelecimento
+            e.codigo_cnes,
+            esp.descricao as especialidade,
+            comp.descricao as complexidade,
+            tg.descricao as tipo_gestao,
+            
+            -- Valores financeiros
+            vf.valor_total,
+            vf.valor_servicos_hospitalares,
+            vf.valor_servicos_profissionais,
+            vf.valor_uti,
+            vf.valor_em_dolares
+            
+        FROM internacoes i
+        LEFT JOIN pacientes p ON i.paciente_id = p.id
+        LEFT JOIN sexo s ON p.codigo_sexo = s.codigo
+        LEFT JOIN cid_diagnosticos cid ON i.codigo_diagnostico_principal = cid.codigo
+        LEFT JOIN carater_internacao ci ON i.codigo_carater_internacao = ci.codigo
+        LEFT JOIN estabelecimentos e ON i.estabelecimento_id = e.id
+        LEFT JOIN especialidades esp ON e.codigo_especialidade = esp.codigo
+        LEFT JOIN complexidade comp ON e.codigo_complexidade = comp.codigo
+        LEFT JOIN tipos_gestao tg ON e.codigo_tipo_gestao = tg.codigo
+        LEFT JOIN valores_financeiros vf ON i.id = vf.internacao_id
+        
+        WHERE i.codigo_diagnostico_principal IS NOT NULL
+        AND p.idade_anos IS NOT NULL
+        AND vf.valor_total IS NOT NULL
+        AND vf.valor_total > 0
     """
     df = pd.read_sql_query(query, conn)
     conn.close()
