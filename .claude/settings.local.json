@@ -2,7 +2,14 @@
   "permissions": {
     "allow": [
       "Bash(python:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(sqlite3:*)",
+      "Bash(pip --version)",
+      "Bash(pip3:*)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(/mnt/c/Windows/py.exe --version)",
+      "Bash(timeout 90 python3 scripts/atualizar_estabelecimentos_cnpj.py)"
     ],
     "deny": []
   }

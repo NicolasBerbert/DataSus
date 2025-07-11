@@ -1,0 +1,9 @@
+.\venv\Scripts\activate  #ativa o ambiente
+pip install -r requirements.txt #instala as dependências
+
+python scripts/create_database.py  #cria a database
+
+python scripts/atualizar_municipios_ibge.py  #acessa a api para pegar os municípios
+python scripts/processar_cid10_completo.py #transforma os diagnósticos em descrições
+python scripts/atualizar_procedimentos_sus.py #transfora a tabela de procedimentos utilizando arquivo sigtap
+python scripts/atualizar_estabelecimentos_cnpj.py #pega os estabelecimentos de cada CNPJ buscando em 3 apis

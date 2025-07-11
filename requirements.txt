@@ -1,7 +1,7 @@
-pandas==2.0.3
-sqlite3
-streamlit==1.28.0
-plotly==5.15.0
-numpy==1.25.2
-seaborn==0.12.2
-matplotlib==3.7.2
+pandas>=2.0.0
+requests>=2.25.0
+streamlit>=1.28.0
+plotly>=5.15.0
+numpy>=1.25.0
+seaborn>=0.12.0
+matplotlib>=3.7.0
