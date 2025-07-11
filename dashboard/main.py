@@ -159,7 +159,7 @@ def main():
         elif selected_page == "👥 Análise Demográfica":
             analise_demografica.render(data)
         elif selected_page == "🗺️ Análise Geográfica":
-            analise_geografica.render(data)
+            analise_geografica.render()
         elif selected_page == "📈 Análise Temporal":
             analise_temporal.render(data)
         elif selected_page == "💰 Gestão de Recursos":

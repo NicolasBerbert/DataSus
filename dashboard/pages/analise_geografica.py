@@ -1,103 +1,124 @@
-import streamlit as st
+import sqlite3
 import pandas as pd
+import os
+from datetime import datetime
 import plotly.express as px
-import plotly.graph_objects as go
+import streamlit as st
 
-def render(data):
-    """
-    Página de Análise Geográfica
-    
-    Responsável: [NOME_DESENVOLVEDOR_4]
-    Prazo: [DATA_PRAZO]
-    
-    Esta página deve conter:
-    - Distribuição por município
-    - Mapas de calor por região
-    - Análise de fluxo de pacientes
-    """
-    
-    st.title("🗺️ Análise Geográfica")
-    st.markdown("---")
-    
-    # Placeholder para desenvolvimento
-    st.info("🚧 **Área de Desenvolvimento - Análise Geográfica**")
-    st.markdown("""
-    ### Tarefas para o Desenvolvedor:
-    
-    1. **Distribuição por Município**:
-       - Ranking de municípios com mais internações
-       - Taxa de internação por 1000 habitantes
-       - Mapa interativo do Paraná
-    
-    2. **Análise Regional**:
-       - Agrupamento por regiões de saúde
-       - Comparação entre regiões
-       - Identificação de hotspots
-    
-    3. **Fluxo de Pacientes**:
-       - Município de origem vs local de internação
-       - Distâncias percorridas
-       - Análise de referenciamento
-    
-    4. **Cobertura e Acesso**:
-       - Vazios assistenciais
-       - Concentração de recursos
-       - Equidade geográfica
-    
-    5. **Mapas Interativos**:
-       - Choropleth maps
-       - Densidade de internações
-       - Filtros por causa e período
-    
-    6. **Integração com Dados Externos**:
-       - População por município (IBGE)
-       - Índices socioeconômicos
-       - Rede de estabelecimentos
-    """)
-    
-    # Exemplo de análise básica
-    st.markdown("### Exemplo de Análise:")
-    
-    # Análise por município
-    munic_freq = data['munic_res'].value_counts().head(10)
-    
+def create_municipios_table(cursor):
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS municipios (
+            codigo TEXT PRIMARY KEY,
+            nome TEXT,
+            regiao_saude TEXT,
+            populacao INTEGER
+        )
+    ''')
+
+def populate_municipios_from_csv(cursor, csv_path):
+    df = pd.read_csv(csv_path)
+    for _, row in df.iterrows():
+        cursor.execute('''
+            INSERT OR IGNORE INTO municipios (codigo, nome, regiao_saude, populacao)
+            VALUES (?, ?, ?, ?)
+        ''', (
+            str(row['codigo']),
+            row['nome'],
+            row.get('regiao_saude', 'Desconhecida'),
+            int(row['populacao']) if not pd.isna(row['populacao']) else None
+        ))
+
+def atualizar_metadata(cursor, fonte_dados):
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS metadata (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tabela TEXT,
+            total_registros INTEGER,
+            ultima_atualizacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            fonte_dados TEXT,
+            versao_estrutura TEXT DEFAULT '2.0'
+        )
+    ''')
+
+    cursor.execute('''
+        INSERT INTO metadata (tabela, total_registros, fonte_dados)
+        VALUES (
+            'municipios',
+            (SELECT COUNT(*) FROM municipios),
+            ?
+        )
+    ''', (fonte_dados,))
+
+def gerar_graficos_municipios(cursor):
+    st.title("📍 Distribuição por Município")
+
+    df = pd.read_sql_query('''
+        SELECT nome, populacao,
+               (SELECT COUNT(*) FROM pacientes p WHERE p.codigo_municipio_residencia = m.codigo) AS total_internacoes
+        FROM municipios m
+        WHERE populacao IS NOT NULL AND populacao > 0
+    ''', conn)
+
+    df['taxa_internacao'] = (df['total_internacoes'] / df['populacao']) * 1000
+    df = df.sort_values(by='total_internacoes', ascending=False)
+
     col1, col2 = st.columns(2)
-    
+
     with col1:
-        st.markdown("**Top 10 Municípios - Internações**")
-        st.dataframe(munic_freq.to_frame().reset_index())
-    
+        st.subheader("🏥 Ranking de Municípios com Mais Internações")
+        st.dataframe(df[['nome', 'total_internacoes']].head(10))
+
     with col2:
-        st.markdown("**Top 10 Municípios - Valor Total**")
-        valor_por_munic = data.groupby('munic_res')['val_tot'].sum().sort_values(ascending=False).head(10)
-        st.dataframe(valor_por_munic.to_frame().reset_index())
-    
-    # Estatísticas geográficas
-    st.markdown("### Estatísticas Geográficas:")
-    
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.metric("Municípios Únicos", f"{data['munic_res'].nunique()}")
-    
-    with col2:
-        st.metric("Município Mais Frequente", f"{munic_freq.index[0]}")
-    
-    with col3:
-        st.metric("Internações no Top Munic.", f"{munic_freq.iloc[0]}")
-    
-    # Dados de exemplo para o desenvolvedor
-    st.markdown("### Dados Disponíveis para Análise:")
-    st.write(f"- Total de municípios: {data['munic_res'].nunique()}")
-    st.write(f"- Códigos de município disponíveis: {sorted(data['munic_res'].unique())[:10]}...")
-    
-    st.markdown("### Amostra dos Dados:")
-    st.dataframe(data[['munic_res', 'val_tot', 'dias_perm', 'diag_princ']].head(10))
-    
-    st.markdown("### Observações para o Desenvolvedor:")
-    st.info("""
-    - Os códigos de município seguem o padrão IBGE
-    - Será necessário integrar com dados do IBGE para obter nomes e coordenadas
-    - Considerar usar bibliotecas como `geopandas` para mapas
-    - Plotly oferece bons recursos para mapas interativos
-    """)
+        st.subheader("📊 Top Municípios por Taxa (por 1000 habitantes)")
+        fig_bar = px.bar(df.sort_values('taxa_internacao', ascending=False).head(10),
+                         x='nome', y='taxa_internacao',
+                         labels={'taxa_internacao': 'Taxa por 1000 hab.'},
+                         title='Taxa de Internação por Município')
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    st.subheader("🗺️ Mapa de Calor - Internações no Paraná")
+
+    # Supondo que há um geojson apropriado com nome dos municípios
+    geojson_url = "https://raw.githubusercontent.com/codeforamerica/click_that_hood/master/public/data/brazil-states.geojson"
+
+    df['geocodigo'] = df['nome']  # Esse campo deve corresponder ao "properties.name" do geojson
+
+    fig_map = px.choropleth(
+        df,
+        geojson=geojson_url,
+        locations='geocodigo',
+        featureidkey="properties.name",
+        color='total_internacoes',
+        color_continuous_scale="Reds",
+        title="Mapa Interativo de Internações por Município"
+    )
+    fig_map.update_geos(fitbounds="locations", visible=False)
+    st.plotly_chart(fig_map, use_container_width=True)
+
+def render():
+    base_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    db_path = os.path.join(base_dir, 'database', 'internacoes_datasus.db')
+    municipios_csv = os.path.join(base_dir, 'data', 'municipios_pr_ibge.csv')
+
+    st.write("📂 Caminho do banco de dados:", db_path)
+    st.write("📄 Caminho do CSV de municípios:", municipios_csv)
+
+    if not os.path.exists(db_path):
+        st.error(f"❌ O banco de dados não foi encontrado em: {db_path}")
+        return
+
+    global conn
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    create_municipios_table(cursor)
+    populate_municipios_from_csv(cursor, municipios_csv)
+    atualizar_metadata(cursor, municipios_csv)
+    conn.commit()
+
+    gerar_graficos_municipios(cursor)
+    conn.close()
+
+
+if __name__ == "__main__":
+    render()
