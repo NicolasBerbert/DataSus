@@ -187,7 +187,7 @@ def create_database_structure():
     """
     
     # Caminho para o banco de dados
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'internacoes_datasus.db')
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'internacoes_datasus.db')
     
     # Conecta ao banco de dados
     conn = sqlite3.connect(db_path)
@@ -381,8 +381,8 @@ def populate_database():
     """
     
     # Caminhos
-    csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'processed', 'dados_limpos_internacoes_pr_2025.csv')
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'internacoes_datasus.db')
+    csv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'processed', 'dados_completos_internacoes_pr_2025.csv')
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'internacoes_datasus.db')
     
     # Carrega o CSV
     print("Carregando dados do CSV...")

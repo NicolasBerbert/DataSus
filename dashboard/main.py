@@ -30,7 +30,7 @@ st.set_page_config(
 @st.cache_resource
 def get_database_connection():
     """Conecta ao banco de dados SQLite"""
-    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'internacoes_datasus.db')
+    db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'internacoes_datasus.db')
     return sqlite3.connect(db_path, check_same_thread=False)
 
 # Função para carregar dados principais

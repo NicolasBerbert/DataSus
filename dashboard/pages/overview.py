@@ -13,6 +13,10 @@ def apply_filters(data, filters):
     if filters['periodo'] != 'Todos':
         if filters['periodo'] == 'Janeiro 2025':
             filtered_data = filtered_data[(filtered_data['ano_competencia'] == 2025) & (filtered_data['mes_competencia'] == 1)]
+        elif filters['periodo'] == 'Fevereiro 2025':
+            filtered_data = filtered_data[(filtered_data['ano_competencia'] == 2025) & (filtered_data['mes_competencia'] == 2)]
+        elif filters['periodo'] == 'Março 2025':
+            filtered_data = filtered_data[(filtered_data['ano_competencia'] == 2025) & (filtered_data['mes_competencia'] == 3)]
     
     # Filtro por faixa etária
     if filters['faixa_etaria'] != 'Todas':
@@ -48,7 +52,7 @@ def render_filters():
     with col1:
         periodo = st.selectbox(
             "Período",
-            ["Todos", "Janeiro 2025"],
+            ["Todos", "Janeiro 2025", "Fevereiro 2025", "Março 2025"],
             key="overview_periodo"
         )
     
