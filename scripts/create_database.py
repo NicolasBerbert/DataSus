@@ -566,15 +566,54 @@ def populate_database():
         AND codigo_diagnostico_principal NOT IN (SELECT codigo FROM cid_diagnosticos)
     ''')
     
+    # Popular tabela de procedimentos com dados reais
+    print("Populando tabela de procedimentos...")
+    cursor.execute('''
+        INSERT OR IGNORE INTO procedimentos (codigo, descricao, grupo_procedimento)
+        SELECT DISTINCT codigo_procedimento_solicitado, 
+               'Procedimento ' || codigo_procedimento_solicitado,
+               'Não classificado'
+        FROM internacoes 
+        WHERE codigo_procedimento_solicitado IS NOT NULL 
+        AND codigo_procedimento_solicitado != ''
+    ''')
+    
+    # Popular tabela de municípios com dados reais (códigos únicos dos pacientes)
+    print("Populando tabela de municípios...")
+    cursor.execute('''
+        INSERT OR IGNORE INTO municipios (codigo, nome, regiao_saude)
+        SELECT DISTINCT codigo_municipio_residencia, 
+               'Município ' || codigo_municipio_residencia,
+               'Paraná'
+        FROM pacientes 
+        WHERE codigo_municipio_residencia IS NOT NULL 
+        AND codigo_municipio_residencia != ''
+    ''')
+    
+    # Adicionar também municípios de movimento dos estabelecimentos
+    cursor.execute('''
+        INSERT OR IGNORE INTO municipios (codigo, nome, regiao_saude)
+        SELECT DISTINCT codigo_municipio_movimento, 
+               'Município ' || codigo_municipio_movimento,
+               'Paraná'
+        FROM estabelecimentos 
+        WHERE codigo_municipio_movimento IS NOT NULL 
+        AND codigo_municipio_movimento != ''
+    ''')
+    
     # Atualizar metadados
+    print("Atualizando metadados...")
     cursor.execute('''
         INSERT INTO metadata (tabela, total_registros, fonte_dados)
         VALUES 
         ('internacoes', (SELECT COUNT(*) FROM internacoes), ?),
         ('pacientes', (SELECT COUNT(*) FROM pacientes), ?),
         ('estabelecimentos', (SELECT COUNT(*) FROM estabelecimentos), ?),
-        ('valores_financeiros', (SELECT COUNT(*) FROM valores_financeiros), ?)
-    ''', (csv_path, csv_path, csv_path, csv_path))
+        ('valores_financeiros', (SELECT COUNT(*) FROM valores_financeiros), ?),
+        ('cid_diagnosticos', (SELECT COUNT(*) FROM cid_diagnosticos), ?),
+        ('procedimentos', (SELECT COUNT(*) FROM procedimentos), ?),
+        ('municipios', (SELECT COUNT(*) FROM municipios), ?)
+    ''', (csv_path, csv_path, csv_path, csv_path, csv_path, csv_path, csv_path))
     
     conn.commit()
     conn.close()
