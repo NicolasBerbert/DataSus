@@ -15,7 +15,8 @@ from pages import (
     analise_geografica,
     analise_temporal,
     gestao_recursos,
-    recomendacoes
+    recomendacoes,
+    machine_learning
 )
 
 # Configuração da página
@@ -78,7 +79,7 @@ def load_main_data():
         LEFT JOIN pacientes p ON i.paciente_id = p.id
         LEFT JOIN sexo s ON p.codigo_sexo = s.codigo
         LEFT JOIN cid_diagnosticos cid ON i.codigo_diagnostico_principal = cid.codigo
-        LEFT JOIN carater_internacao ci ON i.codigo_carater_internacao = ci.codigo
+        LEFT JOIN carater_internacao ci ON printf('%02d', i.codigo_carater_internacao) = ci.codigo
         LEFT JOIN estabelecimentos e ON i.estabelecimento_id = e.id
         LEFT JOIN especialidades esp ON e.codigo_especialidade = esp.codigo
         LEFT JOIN complexidade comp ON e.codigo_complexidade = comp.codigo
@@ -117,6 +118,7 @@ def navigation():
         "👥 Análise Demográfica",
         "🗺️ Análise Geográfica",
         "📈 Análise Temporal",
+        "🤖 Machine Learning",
         "💰 Gestão de Recursos",
         "💡 Recomendações"
     ]
@@ -162,6 +164,8 @@ def main():
             analise_geografica.render(data)
         elif selected_page == "📈 Análise Temporal":
             analise_temporal.render(data)
+        elif selected_page == "🤖 Machine Learning":
+            machine_learning.render(data)
         elif selected_page == "💰 Gestão de Recursos":
             gestao_recursos.render(data)
         elif selected_page == "💡 Recomendações":
