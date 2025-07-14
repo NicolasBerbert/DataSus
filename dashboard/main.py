@@ -50,7 +50,7 @@ def load_main_data():
             i.dias_uti_total,
             i.gestacao_risco,
             
-            -- Dados do paciente
+            - Dados do paciente
             p.idade_anos,
             s.descricao as sexo,
             p.codigo_municipio_residencia,

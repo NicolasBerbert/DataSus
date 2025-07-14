@@ -7,7 +7,7 @@ def render(data):
     st.title("🔍 Causas Principais de Internação")
     st.markdown("---")
 
-    # ========== FILTROS ==========
+    # ========== FILTROS =======
     st.header("Filtros")
     col_ano, col_sexo, col_faixa, col_mun = st.columns(4)
 
