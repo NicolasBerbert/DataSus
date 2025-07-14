@@ -13,7 +13,6 @@ from pages import (
     causas_principais,
     analise_demografica,
     analise_geografica,
-    analise_temporal,
     gestao_recursos,
     recomendacoes,
     machine_learning
@@ -117,7 +116,6 @@ def navigation():
         "🔍 Causas Principais", 
         "👥 Análise Demográfica",
         "🗺️ Análise Geográfica",
-        "📈 Análise Temporal",
         "🤖 Machine Learning",
         "💰 Gestão de Recursos",
         "💡 Recomendações"
@@ -162,8 +160,6 @@ def main():
             analise_demografica.render(data)
         elif selected_page == "🗺️ Análise Geográfica":
             analise_geografica.render(data)
-        elif selected_page == "📈 Análise Temporal":
-            analise_temporal.render(data)
         elif selected_page == "🤖 Machine Learning":
             machine_learning.render(data)
         elif selected_page == "💰 Gestão de Recursos":
