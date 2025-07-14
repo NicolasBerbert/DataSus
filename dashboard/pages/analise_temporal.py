@@ -2,6 +2,10 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
 
 def render(data):
     """
