@@ -54,7 +54,8 @@ def load_main_data():
             p.idade_anos,
             s.descricao as sexo,
             p.codigo_municipio_residencia,
-            
+            m.nome as municipio_residencia,
+
             -- Dados clínicos com descrições
             cid.descricao as diagnostico_principal,
             cid.capitulo as capitulo_cid,
@@ -76,6 +77,7 @@ def load_main_data():
             
         FROM internacoes i
         LEFT JOIN pacientes p ON i.paciente_id = p.id
+        LEFT JOIN municipios m ON p.codigo_municipio_residencia = m.codigo
         LEFT JOIN sexo s ON p.codigo_sexo = s.codigo
         LEFT JOIN cid_diagnosticos cid ON i.codigo_diagnostico_principal = cid.codigo
         LEFT JOIN carater_internacao ci ON printf('%02d', i.codigo_carater_internacao) = ci.codigo
