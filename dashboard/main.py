@@ -113,21 +113,12 @@ def navigation():
     
     # Navegação com pills
     pages = [
-<<<<<<< HEAD
-        "📊 Visão Geral",
-        "🔍 Causas Principais", 
-        "🗺️ Análise Geográfica",
-        "🤖 Machine Learning",
-        "💰 Gestão de Recursos",
-        "💡 Recomendações"
-=======
         "Visão Geral",
         "Causas Principais", 
         "Análise Geográfica",
         "Machine Learning",
         "Gestão de Recursos",
         "Recomendações"
->>>>>>> 9865d33bbf55e32bf099e76e0545f4db1ad0534d
     ]
     
     # Inicializa o estado da sessão se não existir
@@ -165,19 +156,11 @@ def main():
             overview.render(data)
         elif selected_page == "Causas Principais":
             causas_principais.render(data)
-<<<<<<< HEAD
-        elif selected_page == "🗺️ Análise Geográfica":
-            analise_geografica.render(get_database_connection())
-        elif selected_page == "🤖 Machine Learning":
-            machine_learning.render(data)
-        elif selected_page == "💰 Gestão de Recursos":
-=======
         elif selected_page == "Análise Geográfica":
             analise_geografica.render(get_database_connection())
         elif selected_page == "Machine Learning":
             machine_learning.render(data)
         elif selected_page == "Gestão de Recursos":
->>>>>>> 9865d33bbf55e32bf099e76e0545f4db1ad0534d
             gestao_recursos.render(data)
         elif selected_page == "Recomendações":
             recomendacoes.render(data)
