@@ -11,7 +11,6 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from pages import (
     overview,
     causas_principais,
-    analise_demografica,
     analise_geografica,
     gestao_recursos,
     recomendacoes,
@@ -99,11 +98,11 @@ def load_main_data():
 # Função de navegação com pills
 def navigation():
     # Header do dashboard
-    st.title("🏥 Dashboard - Internações Hospitalares")
+    st.title("Dashboard - Internações Hospitalares")
     st.markdown("**Causas Sensíveis à Atenção Básica**")
     
     # Informações da persona
-    with st.expander("👨‍⚕️ Persona - Dr. Roberto", expanded=False):
+    with st.expander("Persona - Dr. Roberto", expanded=False):
         st.markdown("""
         **Dr. Roberto** - Gestor de Unidade Básica de Saúde
         
@@ -114,13 +113,12 @@ def navigation():
     
     # Navegação com pills
     pages = [
-        "📊 Visão Geral",
-        "🔍 Causas Principais", 
-        "👥 Análise Demográfica",
-        "🗺️ Análise Geográfica",
-        "🤖 Machine Learning",
-        "💰 Gestão de Recursos",
-        "💡 Recomendações"
+        "Visão Geral",
+        "Causas Principais", 
+        "Análise Geográfica",
+        "Machine Learning",
+        "Gestão de Recursos",
+        "Recomendações"
     ]
     
     # Inicializa o estado da sessão se não existir
@@ -154,25 +152,17 @@ def main():
         data = load_main_data()
         
         # Roteamento das páginas
-        if selected_page == "📊 Visão Geral":
+        if selected_page == "Visão Geral":
             overview.render(data)
-        elif selected_page == "🔍 Causas Principais":
+        elif selected_page == "Causas Principais":
             causas_principais.render(data)
-        elif selected_page == "👥 Análise Demográfica":
-            analise_demografica.render(data)
-        elif selected_page == "🗺️ Análise Geográfica":
-<<<<<<< HEAD
-            analise_geografica.render(data)
-        elif selected_page == "🤖 Machine Learning":
-            machine_learning.render(data)
-=======
+        elif selected_page == "Análise Geográfica":
             analise_geografica.render(get_database_connection())
-        elif selected_page == "📈 Análise Temporal":
-            analise_temporal.render(data)
->>>>>>> f3f6585085e39281492658ab69afaf47e82e78e2
-        elif selected_page == "💰 Gestão de Recursos":
+        elif selected_page == "Machine Learning":
+            machine_learning.render(data)
+        elif selected_page == "Gestão de Recursos":
             gestao_recursos.render(data)
-        elif selected_page == "💡 Recomendações":
+        elif selected_page == "Recomendações":
             recomendacoes.render(data)
             
     except Exception as e:

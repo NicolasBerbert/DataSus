@@ -1,3 +1,4 @@
+from dashboard.pages.causas_principais import render_styled_metric
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -7,7 +8,8 @@ import json
 
 def render(conn):
 
-    st.subheader("Filtro Detalhado por Município Selecionado")
+    st.markdown("## Análise Geográfica")
+    st.markdown("### Filtros")
     query_all_municipios_map = """
     SELECT codigo AS cod_municipio, nome AS municipio, regiao_saude, populacao
     FROM municipios ORDER BY nome;
@@ -118,8 +120,9 @@ def render(conn):
     """
     df_regioes = pd.read_sql_query(query_regioes, conn)
     
+    st.markdown("---")
     # --- Mapa Interativo com GeoJSON ---
-    st.subheader("Distribuição de Internações nos Municípios do Paraná")
+    st.markdown("### Distribuição de Internações nos Municípios do Paraná")
 
     geojson_path = "data/geojson/municipios_pr.json"
 
@@ -149,7 +152,7 @@ def render(conn):
         color="total_internacoes",
         hover_name="municipio",
         hover_data=["total_internacoes", "regiao_saude", "populacao"],
-        color_continuous_scale="Blues"
+        color_continuous_scale=['#eff6ff', '#1e3a8a']
     )
     fig_map.update_geos(fitbounds="locations", visible=False)
 
@@ -162,10 +165,20 @@ def render(conn):
             df_selecionado_row = df_selecionado_info.iloc[0]
             st.markdown(f"### Dados para {municipio_selecionado}")
             col4, col5 = st.columns(2)
-            with col4.container(border = True):
-                st.metric(label="Total de Internações", value=f"{df_selecionado_row['total_internacoes']:,}".replace(",", "."))
-            with col5.container(border = True):
-                st.metric(label="Pacientes Residentes Internados", value=f"{df_selecionado_row['total_pacientes_residentes_internados']:,}".replace(",", "."))
+            with col4:
+                render_styled_metric(
+                    "Total de Internações",
+                    f"{df_selecionado_row['total_internacoes']:,}".replace(",", "."),
+                    "Número total de internações no município",
+                    "🏥"
+                )
+            with col5:
+                render_styled_metric(
+                    "Pacientes Residentes Internados",
+                    f"{df_selecionado_row['total_pacientes_residentes_internados']:,}".replace(",", "."),
+                    "Pacientes residentes que foram internados",
+                    "👥"
+                )
 
             # Lógica de destaque no mapa
             cod_municipio_para_destacar = df_selecionado_row['cod_municipio']
@@ -187,8 +200,7 @@ def render(conn):
                     name=f'Destaque: {municipio_selecionado}'
                 )
                 fig_map.add_trace(highlight_trace) # Adiciona a camada de destaque ao mapa principal
-                with st.container(border = True):
-                    st.plotly_chart(fig_map, use_container_width=True)
+                st.plotly_chart(fig_map, use_container_width=True)
         else:
             st.warning(f"Não foram encontrados dados para o município: {municipio_selecionado}. Verifique a seleção.")
     else: # Se 'Todos os Municípios' for selecionado
@@ -197,18 +209,27 @@ def render(conn):
         total_pacientes_geral = df_municipios['total_pacientes_residentes_internados'].sum()
 
         col6, col7 = st.columns(2)
-        with col6.container(border = True):
-            st.metric(label="Total de Internações (Geral)", value=f"{total_internacoes_geral:,}".replace(",", "."))
-        with col7.container(border = True):
-            st.metric(label="Pacientes Residentes Internados (Geral)", value=f"{total_pacientes_geral:,}".replace(",", "."))
-        with st.container(border = True):
-            st.plotly_chart(fig_map, use_container_width=True)
+        with col6:
+            render_styled_metric(
+                "Total de Internações (Geral)",
+                f"{total_internacoes_geral:,}".replace(",", "."),
+                "Número total de internações no estado",
+                "🏥"
+            )
+        with col7:
+            render_styled_metric(
+                "Pacientes Residentes Internados (Geral)",
+                f"{total_pacientes_geral:,}".replace(",", "."),
+                "Total de pacientes residentes internados",
+                "👥"
+            )
+        st.plotly_chart(fig_map, use_container_width=True)
     
 
+        st.markdown("---")
         col1, col2 = st.columns(2)
-        with col1.container(border = True):
-            #Gráfico de Barras (Top 10)
-            st.subheader("Municípios com Mais Internações")
+        with col1:
+            st.markdown("### Municípios com Mais Internações")
 
             top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
             fig_bar = px.bar(top10,
@@ -216,24 +237,30 @@ def render(conn):
                              y='municipio',
                              orientation='h',
                              color='total_internacoes',
-                             color_continuous_scale='Reds',
+                             color_continuous_scale=['#eff6ff', '#1e3a8a'],
                              labels={'total_internacoes': 'Internações'}
                             )
             fig_bar.update_layout(coloraxis_showscale=False)
             fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
             st.plotly_chart(fig_bar, use_container_width=True)
 
-        with col2.container(border = True):
-            st.subheader("Comparativo de Internações por Região de Saúde")
+        with col2:
+            st.markdown("### Comparativo por Região de Saúde")
             df_regioes_filtrado = df_regioes[df_regioes['regiao_saude'] != 'Paraná'].copy()
 
             if not df_regioes_filtrado.empty:
+                # Cores em tons de azul para consistência
+                cores_azuis = [
+                    '#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6',
+                    '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
+                ]
                 fig_regioes_pie = px.pie(
                     df_regioes_filtrado,
                     values='total_internacoes_regiao',
                     names='regiao_saude',
                     title='',
-                    hole=0.5 # Para criar um gráfico de rosca
+                    hole=0.5,
+                    color_discrete_sequence=cores_azuis
                 )
                 st.plotly_chart(fig_regioes_pie, use_container_width=True)
             else:
@@ -263,8 +290,11 @@ def render(conn):
         """
         df_fluxo_destino = pd.read_sql_query(query_fluxo_destino, conn)
 
+        st.markdown("---")
+        st.markdown("### Fluxo de Pacientes")
+        
         col8, col9 = st.columns(2)
-        with col8.container(border = True):
+        with col8:
             if not df_fluxo_destino.empty:
                 fig_fluxo_destino = px.bar(df_fluxo_destino,
                                            x='municipio_origem',
@@ -272,9 +302,9 @@ def render(conn):
                                            orientation='v',
                                            labels={'total_internacoes_aqui': 'Total de Internações', 'municipio_origem': 'Município de Origem'},
                                            color='total_internacoes_aqui',
-                                           color_continuous_scale='Viridis')
+                                           color_continuous_scale=['#eff6ff', '#1e3a8a'])
                 fig_fluxo_destino.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.subheader(f"Origem de Pacientes Internados em {municipio_selecionado}")
+                st.markdown(f"#### Origem de Pacientes Internados em {municipio_selecionado}")
                 st.plotly_chart(fig_fluxo_destino, use_container_width=True)
             else:
                 st.info(f"Não há registros de pacientes de outros municípios internados em {municipio_selecionado}.")
@@ -300,7 +330,7 @@ def render(conn):
             LIMIT 10;
         """
         df_fluxo_origem = pd.read_sql_query(query_fluxo_origem, conn)
-        with col9.container(border = True):
+        with col9:
             if not df_fluxo_origem.empty:
                 
                 fig_fluxo_origem = px.bar(df_fluxo_origem,
@@ -309,9 +339,9 @@ def render(conn):
                                            orientation='v',
                                            labels={'total_internacoes_fora': 'Total de Internações', 'municipio_internacao': 'Município de Internação'},
                                            color='total_internacoes_fora',
-                                           color_continuous_scale='Plasma')
+                                           color_continuous_scale=['#eff6ff', '#2563eb'])
                 fig_fluxo_origem.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.subheader(f"Destino de Pacientes Residentes de {municipio_selecionado}")
+                st.markdown(f"#### Destino de Pacientes Residentes de {municipio_selecionado}")
                 st.plotly_chart(fig_fluxo_origem, use_container_width=True)
             else:
                 st.info(f"Não há registros de pacientes residentes de {municipio_selecionado} internados em outros municípios.")
