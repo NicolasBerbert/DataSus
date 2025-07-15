@@ -685,7 +685,7 @@ def modelo_deteccao_anomalias(data):
 
 # Função removida para simplificar o dashboard
 
-def render_styled_ml_metric(title, value, help_text, icon="📊"):
+def render_styled_ml_metric(title, value, help_text, icon=None):
     """Renderiza uma métrica estilizada para ML"""
     st.markdown(f"""
     <div style="
@@ -698,10 +698,7 @@ def render_styled_ml_metric(title, value, help_text, icon="📊"):
         border: 1px solid rgba(255, 255, 255, 0.1);
         text-align: center;
     ">
-        <div style="display: flex; align-items: center; justify-content: center; margin-bottom: 0.5rem;">
-            <span style="font-size: 1.2rem; margin-right: 0.5rem;">{icon}</span>
-            <h4 style="margin: 0; font-size: 0.9rem; opacity: 0.9;">{title}</h4>
-        </div>
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; opacity: 0.9;">{title}</h4>
         <div style="font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;">
             {value}
         </div>
@@ -735,7 +732,7 @@ def render_styled_section_card(title, content, icon="📊"):
 def render(data):
     """Renderiza a página de Machine Learning"""
     
-    st.markdown("## 🤖 Análises de Machine Learning")
+    st.markdown("## Análises de Machine Learning")
     st.markdown("**Modelos preditivos e análises avançadas para otimização da gestão hospitalar**")
     
     # Menu de seleção de análises com estilo

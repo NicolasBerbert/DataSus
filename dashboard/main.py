@@ -98,11 +98,11 @@ def load_main_data():
 # Função de navegação com pills
 def navigation():
     # Header do dashboard
-    st.title("🏥 Dashboard - Internações Hospitalares")
+    st.title("Dashboard - Internações Hospitalares")
     st.markdown("**Causas Sensíveis à Atenção Básica**")
     
     # Informações da persona
-    with st.expander("👨‍⚕️ Persona - Dr. Roberto", expanded=False):
+    with st.expander("Persona - Dr. Roberto", expanded=False):
         st.markdown("""
         **Dr. Roberto** - Gestor de Unidade Básica de Saúde
         
@@ -113,12 +113,21 @@ def navigation():
     
     # Navegação com pills
     pages = [
+<<<<<<< HEAD
         "📊 Visão Geral",
         "🔍 Causas Principais", 
         "🗺️ Análise Geográfica",
         "🤖 Machine Learning",
         "💰 Gestão de Recursos",
         "💡 Recomendações"
+=======
+        "Visão Geral",
+        "Causas Principais", 
+        "Análise Geográfica",
+        "Machine Learning",
+        "Gestão de Recursos",
+        "Recomendações"
+>>>>>>> 9865d33bbf55e32bf099e76e0545f4db1ad0534d
     ]
     
     # Inicializa o estado da sessão se não existir
@@ -152,17 +161,25 @@ def main():
         data = load_main_data()
         
         # Roteamento das páginas
-        if selected_page == "📊 Visão Geral":
+        if selected_page == "Visão Geral":
             overview.render(data)
-        elif selected_page == "🔍 Causas Principais":
+        elif selected_page == "Causas Principais":
             causas_principais.render(data)
+<<<<<<< HEAD
         elif selected_page == "🗺️ Análise Geográfica":
             analise_geografica.render(get_database_connection())
         elif selected_page == "🤖 Machine Learning":
             machine_learning.render(data)
         elif selected_page == "💰 Gestão de Recursos":
+=======
+        elif selected_page == "Análise Geográfica":
+            analise_geografica.render(get_database_connection())
+        elif selected_page == "Machine Learning":
+            machine_learning.render(data)
+        elif selected_page == "Gestão de Recursos":
+>>>>>>> 9865d33bbf55e32bf099e76e0545f4db1ad0534d
             gestao_recursos.render(data)
-        elif selected_page == "💡 Recomendações":
+        elif selected_page == "Recomendações":
             recomendacoes.render(data)
             
     except Exception as e:

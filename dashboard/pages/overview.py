@@ -45,7 +45,7 @@ def apply_filters(data, filters):
 
 def render_filters():
     """Renderiza os filtros da página"""
-    st.markdown("### 🔍 Filtros")
+    st.markdown("### Filtros")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -84,7 +84,7 @@ def render_filters():
         'tipo_internacao': tipo_internacao
     }
 
-def render_styled_metric(title, value, help_text, icon="📊"):
+def render_styled_metric(title, value, help_text, icon=None):
     """Renderiza uma métrica estilizada em card"""
     st.markdown(f"""
     <div style="
@@ -95,11 +95,9 @@ def render_styled_metric(title, value, help_text, icon="📊"):
         margin: 0.5rem 0;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(255, 255, 255, 0.1);
+        text-align: center;
     ">
-        <div style="display: flex; align-items: center; margin-bottom: 0.5rem;">
-            <span style="font-size: 1.2rem; margin-right: 0.5rem;">{icon}</span>
-            <h4 style="margin: 0; font-size: 0.9rem; opacity: 0.9;">{title}</h4>
-        </div>
+        <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem; opacity: 0.9;">{title}</h4>
         <div style="font-size: 1.8rem; font-weight: bold; margin: 0.5rem 0;">
             {value}
         </div>
@@ -111,7 +109,7 @@ def render_styled_metric(title, value, help_text, icon="📊"):
 
 def render_kpis(data):
     """Renderiza KPIs principais em cards estilizados"""
-    st.markdown("### 📈 Métricas Principais")
+    st.markdown("### Métricas Principais")
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -120,8 +118,7 @@ def render_kpis(data):
         render_styled_metric(
             "Total de Internações",
             f"{total_internacoes:,}",
-            "Número total de internações registradas",
-            "🏥"
+            "Número total de internações registradas"
         )
     
     with col2:
@@ -129,17 +126,15 @@ def render_kpis(data):
         render_styled_metric(
             "Valor Total",
             f"R$ {valor_total:,.2f}",
-            "Valor total gasto com internações",
-            "💰"
+            "Valor total gasto com internações"
         )
     
     with col3:
         media_permanencia = data['dias_permanencia'].mean()
         render_styled_metric(
-            "Média de Permanência",
+            "Permanência Média",
             f"{media_permanencia:.1f} dias",
-            "Tempo médio de permanência hospitalar",
-            "⏱️"
+            "Tempo médio de permanência hospitalar"
         )
     
     with col4:
@@ -147,8 +142,7 @@ def render_kpis(data):
         render_styled_metric(
             "Idade Média",
             f"{idade_media:.1f} anos",
-            "Idade média dos pacientes internados",
-            "👥"
+            "Idade média dos pacientes internados"
         )
     
     # Segunda linha de KPIs
@@ -157,10 +151,9 @@ def render_kpis(data):
     with col1:
         custo_medio = data['valor_total'].mean()
         render_styled_metric(
-            "Custo Médio/Internação",
+            "Custo Médio por Internação",
             f"R$ {custo_medio:.2f}",
-            "Custo médio por internação",
-            "💳"
+            "Custo médio por internação"
         )
     
     with col2:
@@ -173,35 +166,32 @@ def render_kpis(data):
             custo_dia_text = "R$ 0,00"
         
         render_styled_metric(
-            "Custo Médio/Dia",
+            "Custo Médio por Dia",
             custo_dia_text,
-            "Custo médio por dia de internação",
-            "📊"
+            "Custo médio por dia de internação"
         )
     
     with col3:
         internacoes_urgencia = len(data[data['carater_internacao'] == 'Urgência'])
         perc_urgencia = (internacoes_urgencia / len(data)) * 100 if len(data) > 0 else 0
         render_styled_metric(
-            "% Urgência",
+            "Percentual de Urgência",
             f"{perc_urgencia:.1f}%",
-            "Percentual de internações de urgência",
-            "🚨"
+            "Percentual de internações de urgência"
         )
     
     with col4:
         idosos = len(data[data['idade_anos'] >= 60])
         perc_idosos = (idosos / len(data)) * 100 if len(data) > 0 else 0
         render_styled_metric(
-            "% Idosos (60+)",
+            "Percentual de Idosos (60+)",
             f"{perc_idosos:.1f}%",
-            "Percentual de pacientes idosos",
-            "👴"
+            "Percentual de pacientes idosos"
         )
 
 def render_principais_causas(data):
     """Renderiza gráfico de principais causas"""
-    st.markdown("### 🥧 Distribuição por Principais Causas")
+    st.markdown("### Distribuição por Principais Causas")
     
     # Top 10 causas mais comuns
     top_causas = data['diagnostico_principal'].value_counts().head(10)
@@ -222,31 +212,33 @@ def render_principais_causas(data):
     st.plotly_chart(fig, use_container_width=True)
     
     # Ranking detalhado em cards horizontais
-    st.markdown("### 🏆 Ranking Detalhado - Top 10 Casos Mais Recorrentes")
+    st.markdown("### Ranking Detalhado")
     
     for i, (diagnostico, casos) in enumerate(top_causas.items(), 1):
         percentual = (casos / len(data) * 100)
         
-        # Cores em tons de azul para as posições
-        cores_azuis_ranking = [
-            "#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6",
-            "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#e0f2fe"
+        # Gradiente de azul escuro para azul médio, mantendo visibilidade com texto branco
+        cores_azul_gradiente = [
+            "#0077CC", "#1A93FF", "#339FFF", "#4DABFF", "#66B7FF",
+            "#80C3FF", "#99CFFF", "#B3DBFF", "#CCE7FF", "#E6F3FF"
         ]
-        cor = cores_azuis_ranking[i-1] if i <= len(cores_azuis_ranking) else "#64748b"
+        cor_fundo = cores_azul_gradiente[i-1] if i <= len(cores_azul_gradiente) else "#0f172a"
+        cor_borda = "#2563eb"
         
         st.markdown(f"""
         <div style="
-            background: linear-gradient(135deg, {cor} 0%, {cor}AA 100%);
+            background: {cor_fundo};
             padding: 1rem 1.5rem;
             border-radius: 10px;
             margin: 0.5rem 0;
             box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid {cor};
+            border-left: 4px solid {cor_borda};
         ">
             <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div style="display: flex; align-items: center;">
                     <div style="
-                        background: rgba(255, 255, 255, 0.2);
+                        background: {cor_borda};
+                        color: white;
                         width: 40px;
                         height: 40px;
                         border-radius: 50%;
@@ -260,16 +252,16 @@ def render_principais_causas(data):
                         {i}º
                     </div>
                     <div>
-                        <h4 style="margin: 0; font-size: 1rem; color: #2C3E50;">
+                        <h4 style="margin: 0; font-size: 1rem; color: #1a1a1a;">
                             {diagnostico}
                         </h4>
                     </div>
                 </div>
                 <div style="text-align: right;">
-                    <div style="font-size: 1.4rem; font-weight: bold; color: #2C3E50;">
+                    <div style="font-size: 1.4rem; font-weight: bold; color: #1a1a1a;">
                         {casos:,} casos
                     </div>
-                    <div style="font-size: 0.9rem; color: #7F8C8D;">
+                    <div style="font-size: 0.9rem; color: rgba(26, 26, 26, 0.8);">
                         {percentual:.1f}% do total
                     </div>
                 </div>
@@ -279,7 +271,7 @@ def render_principais_causas(data):
 
 def render_analise_temporal(data):
     """Renderiza análise temporal"""
-    st.markdown("### 📊 Análise Temporal de Internações")
+    st.markdown("### Análise Temporal")
     
     # Preparar dados temporais
     data_temp = data.copy()
@@ -321,7 +313,7 @@ def render_analise_temporal(data):
 
 def render_analise_custos(data):
     """Renderiza análise de custos"""
-    st.markdown("### 💰 Análise de Custos e Valores")
+    st.markdown("### Análise de Custos")
     
     col1, col2 = st.columns(2)
     
@@ -361,7 +353,7 @@ def render_analise_custos(data):
 
 def render_perfil_demografico(data):
     """Renderiza perfil demográfico"""
-    st.markdown("### 👥 Perfil Demográfico dos Pacientes")
+    st.markdown("### Perfil Demográfico")
     
     col1, col2 = st.columns(2)
     
@@ -392,7 +384,7 @@ def render_perfil_demografico(data):
 
 def render_tipo_internacao(data):
     """Renderiza análise por tipo de internação"""
-    st.markdown("### 🏥 Análise por Tipo de Internação")
+    st.markdown("### Análise por Tipo de Internação")
     
     col1, col2 = st.columns(2)
     
@@ -424,7 +416,7 @@ def render_tipo_internacao(data):
 
 def render_tempo_permanencia(data):
     """Renderiza análise de tempo de permanência"""
-    st.markdown("### ⏱️ Tempo de Permanência")
+    st.markdown("### Tempo de Permanência")
     
     col1, col2 = st.columns(2)
     
@@ -460,7 +452,7 @@ def render_tempo_permanencia(data):
 
 def render_top_municipios(data):
     """Renderiza top municípios"""
-    st.markdown("### 🗺️ Top Municípios por Internações")
+    st.markdown("### Top Municípios")
     
     col1, col2 = st.columns(2)
     
@@ -498,7 +490,7 @@ def render_top_municipios(data):
 
 def render_insights_alertas(data):
     """Renderiza insights e alertas"""
-    st.markdown("### ⚡ Insights e Alertas Importantes")
+    st.markdown("### Insights e Alertas")
     
     col1, col2 = st.columns(2)
     
@@ -545,7 +537,7 @@ def render_insights_alertas(data):
 def render(data):
     """Renderiza a página de Visão Geral"""
     
-    st.markdown("## 📊 Visão Geral")
+    st.markdown("## Visão Geral")
     
     # Renderizar filtros
     filters = render_filters()
@@ -555,7 +547,7 @@ def render(data):
     
     # Mostrar informações sobre filtros aplicados
     if len(filtered_data) < len(data):
-        st.info(f"📊 Mostrando {len(filtered_data):,} de {len(data):,} registros (filtros aplicados)")
+        st.info(f"Mostrando {len(filtered_data):,} de {len(data):,} registros (filtros aplicados)")
     
     st.markdown("---")
     
