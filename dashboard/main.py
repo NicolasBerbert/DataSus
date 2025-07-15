@@ -11,11 +11,10 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from pages import (
     overview,
     causas_principais,
-    analise_demografica,
     analise_geografica,
-    analise_temporal,
     gestao_recursos,
-    recomendacoes
+    recomendacoes,
+    machine_learning
 )
 
 # Configuração da página
@@ -54,7 +53,8 @@ def load_main_data():
             p.idade_anos,
             s.descricao as sexo,
             p.codigo_municipio_residencia,
-            
+            m.nome as municipio_residencia,
+
             -- Dados clínicos com descrições
             cid.descricao as diagnostico_principal,
             cid.capitulo as capitulo_cid,
@@ -76,9 +76,10 @@ def load_main_data():
             
         FROM internacoes i
         LEFT JOIN pacientes p ON i.paciente_id = p.id
+        LEFT JOIN municipios m ON p.codigo_municipio_residencia = m.codigo
         LEFT JOIN sexo s ON p.codigo_sexo = s.codigo
         LEFT JOIN cid_diagnosticos cid ON i.codigo_diagnostico_principal = cid.codigo
-        LEFT JOIN carater_internacao ci ON i.codigo_carater_internacao = ci.codigo
+        LEFT JOIN carater_internacao ci ON printf('%02d', i.codigo_carater_internacao) = ci.codigo
         LEFT JOIN estabelecimentos e ON i.estabelecimento_id = e.id
         LEFT JOIN especialidades esp ON e.codigo_especialidade = esp.codigo
         LEFT JOIN complexidade comp ON e.codigo_complexidade = comp.codigo
@@ -91,17 +92,17 @@ def load_main_data():
         AND vf.valor_total > 0
     """
     df = pd.read_sql_query(query, conn)
-    conn.close()
+    
     return df
 
 # Função de navegação com pills
 def navigation():
     # Header do dashboard
-    st.title("🏥 Dashboard - Internações Hospitalares")
+    st.title("Dashboard - Internações Hospitalares")
     st.markdown("**Causas Sensíveis à Atenção Básica**")
     
     # Informações da persona
-    with st.expander("👨‍⚕️ Persona - Dr. Roberto", expanded=False):
+    with st.expander("Persona - Dr. Roberto", expanded=False):
         st.markdown("""
         **Dr. Roberto** - Gestor de Unidade Básica de Saúde
         
@@ -112,13 +113,12 @@ def navigation():
     
     # Navegação com pills
     pages = [
-        "📊 Visão Geral",
-        "🔍 Causas Principais", 
-        "👥 Análise Demográfica",
-        "🗺️ Análise Geográfica",
-        "📈 Análise Temporal",
-        "💰 Gestão de Recursos",
-        "💡 Recomendações"
+        "Visão Geral",
+        "Causas Principais", 
+        "Análise Geográfica",
+        "Machine Learning",
+        "Gestão de Recursos",
+        "Recomendações"
     ]
     
     # Inicializa o estado da sessão se não existir
@@ -152,19 +152,17 @@ def main():
         data = load_main_data()
         
         # Roteamento das páginas
-        if selected_page == "📊 Visão Geral":
+        if selected_page == "Visão Geral":
             overview.render(data)
-        elif selected_page == "🔍 Causas Principais":
+        elif selected_page == "Causas Principais":
             causas_principais.render(data)
-        elif selected_page == "👥 Análise Demográfica":
-            analise_demografica.render(data)
-        elif selected_page == "🗺️ Análise Geográfica":
-            analise_geografica.render(data)
-        elif selected_page == "📈 Análise Temporal":
-            analise_temporal.render(data)
-        elif selected_page == "💰 Gestão de Recursos":
+        elif selected_page == "Análise Geográfica":
+            analise_geografica.render(get_database_connection())
+        elif selected_page == "Machine Learning":
+            machine_learning.render(data)
+        elif selected_page == "Gestão de Recursos":
             gestao_recursos.render(data)
-        elif selected_page == "💡 Recomendações":
+        elif selected_page == "Recomendações":
             recomendacoes.render(data)
             
     except Exception as e:
