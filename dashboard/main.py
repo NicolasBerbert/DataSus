@@ -11,7 +11,6 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 from pages import (
     overview,
     causas_principais,
-    analise_demografica,
     analise_geografica,
     gestao_recursos,
     recomendacoes,
@@ -116,7 +115,6 @@ def navigation():
     pages = [
         "📊 Visão Geral",
         "🔍 Causas Principais", 
-        "👥 Análise Demográfica",
         "🗺️ Análise Geográfica",
         "🤖 Machine Learning",
         "💰 Gestão de Recursos",
@@ -158,18 +156,10 @@ def main():
             overview.render(data)
         elif selected_page == "🔍 Causas Principais":
             causas_principais.render(data)
-        elif selected_page == "👥 Análise Demográfica":
-            analise_demografica.render(data)
         elif selected_page == "🗺️ Análise Geográfica":
-<<<<<<< HEAD
-            analise_geografica.render(data)
+            analise_geografica.render(get_database_connection())
         elif selected_page == "🤖 Machine Learning":
             machine_learning.render(data)
-=======
-            analise_geografica.render(get_database_connection())
-        elif selected_page == "📈 Análise Temporal":
-            analise_temporal.render(data)
->>>>>>> f3f6585085e39281492658ab69afaf47e82e78e2
         elif selected_page == "💰 Gestão de Recursos":
             gestao_recursos.render(data)
         elif selected_page == "💡 Recomendações":

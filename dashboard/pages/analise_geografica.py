@@ -4,10 +4,14 @@ import plotly.express as px
 import plotly.graph_objects as go
 import sqlite3
 import json
+import numpy as np 
+from datetime import datetime # Importar para obter o ano atual
 
 def render(conn):
 
     st.subheader("Filtro Detalhado por Município Selecionado")
+
+    # --- CARREGAMENTO DE DADOS BASE (SEM CACHE) ---
     query_all_municipios_map = """
     SELECT codigo AS cod_municipio, nome AS municipio, regiao_saude, populacao
     FROM municipios ORDER BY nome;
@@ -15,7 +19,7 @@ def render(conn):
     df_all_municipios_map = pd.read_sql_query(query_all_municipios_map, conn)
     df_all_municipios_map['cod_municipio'] = df_all_municipios_map['cod_municipio'].astype(str).str.zfill(6)
 
-    col_filters1, col_filters2 = st.columns(2)
+    col_filters1, col_filters2 = st.columns(2) 
 
     with col_filters1:
         query_all_municipios_names = """
@@ -29,8 +33,10 @@ def render(conn):
             key="municipio_filter"
         )
 
+        cod_municipio_selecionado = None 
         municipio_filter_for_causas = ""
         municipio_join_for_causas = ""
+
         if municipio_selecionado != 'Todos os Municípios':
             query_municipio_codigo = f"SELECT codigo FROM municipios WHERE nome = '{municipio_selecionado.replace("'", "''")}'"
             df_municipio_codigo = pd.read_sql_query(query_municipio_codigo, conn)
@@ -62,22 +68,18 @@ def render(conn):
             key="causa_cid_filter"
         )
 
-    
-
     selected_cid_id = None
     if selected_causa_desc != 'Todas as Causas':
         selected_cid_row = df_causas[df_causas['descricao'] == selected_causa_desc]
         if not selected_cid_row.empty:
             selected_cid_id = selected_cid_row['codigo'].iloc[0]
 
+    # --- Conectores para as Queries Principais (CID) ---
     cid_filter_join = ""
     cid_filter_where = ""
     if selected_cid_id is not None:
         cid_filter_join = "JOIN cid_diagnosticos c ON i.codigo_diagnostico_principal = c.codigo"
         cid_filter_where = f"AND c.codigo = '{selected_cid_id}'"
-
-    
-    
     
     # Consulta com código do município e contagem de internações
     query_contagem = f"""
@@ -100,8 +102,8 @@ def render(conn):
     df_municipios['cod_municipio'] = df_municipios['cod_municipio'].astype(str).str.zfill(6)
 
     df_mapa_final = pd.merge(df_all_municipios_map, df_municipios[['cod_municipio', 'total_internacoes']], 
-                         on='cod_municipio', how='left')
-    df_mapa_final['total_internacoes'] = df_mapa_final['total_internacoes'].fillna(0) # Preenche NaN com 0 para coloração
+                             on='cod_municipio', how='left')
+    df_mapa_final['total_internacoes'] = df_mapa_final['total_internacoes'].fillna(0) 
 
     # Consulta de regiões
     query_regioes = f"""
@@ -118,21 +120,16 @@ def render(conn):
     """
     df_regioes = pd.read_sql_query(query_regioes, conn)
     
-    # --- Mapa Interativo com GeoJSON ---
-    st.subheader("Distribuição de Internações nos Municípios do Paraná")
-
+    # --- Carregamento GeoJSON ---
     geojson_path = "data/geojson/municipios_pr.json"
-
     try:
         with open(geojson_path, "r", encoding="utf-8") as f:
             geojson = json.load(f)
-
         if geojson.get('features'):
             for feature in geojson['features']:
                 if 'id' in feature['properties'] and isinstance(feature['properties']['id'], str):
                     feature['properties']['id'] = feature['properties']['id'][:-1]
                     feature['properties']['id'] = feature['properties']['id'].zfill(6)
-
     except FileNotFoundError:
         st.error(f"Erro: Arquivo GeoJSON não encontrado em '{geojson_path}'. Verifique o caminho.")
         return
@@ -180,13 +177,13 @@ def render(conn):
                     locations=[cod_municipio_para_destacar],
                     featureidkey="properties.id",
                     z=[1],
-                    colorscale=[[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']], # Transparente no preenchimento
-                    marker_line_width=4,    # Espessura da linha (contorno)
-                    marker_line_color='blue', # Cor da linha
-                    showscale=False,        # Não mostra a barra de cores para o destaque
+                    colorscale=[[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']], 
+                    marker_line_width=4,    
+                    marker_line_color='blue', 
+                    showscale=False,        
                     name=f'Destaque: {municipio_selecionado}'
                 )
-                fig_map.add_trace(highlight_trace) # Adiciona a camada de destaque ao mapa principal
+                fig_map.add_trace(highlight_trace) 
                 with st.container(border = True):
                     st.plotly_chart(fig_map, use_container_width=True)
         else:
@@ -203,69 +200,128 @@ def render(conn):
             st.metric(label="Pacientes Residentes Internados (Geral)", value=f"{total_pacientes_geral:,}".replace(",", "."))
         with st.container(border = True):
             st.plotly_chart(fig_map, use_container_width=True)
+    st.subheader(" ",divider = True)
+
+    # --- Gráficos de barra e Pizza ---
+    col1, col2 = st.columns(2)
+    with col1.container(border = True):
+        #Gráfico de Barras (Top 10)
+        st.subheader("Municípios com Mais Internações")
+
+        top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
+        fig_bar = px.bar(top10,
+                         x='total_internacoes',
+                         y='municipio',
+                         orientation='h',
+                         color='total_internacoes',
+                         color_continuous_scale='Reds',
+                         labels={'total_internacoes': 'Internações'}
+                        )
+        fig_bar.update_layout(coloraxis_showscale=False)
+        fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
+        st.plotly_chart(fig_bar, use_container_width=True)
+
+    with col2.container(border = True):
+        st.subheader("Comparativo de Internações por Região de Saúde")
+        df_regioes_filtrado = df_regioes[df_regioes['regiao_saude'] != 'Paraná'].copy()
+
+        if not df_regioes_filtrado.empty:
+            fig_regioes_pie = px.pie(
+                df_regioes_filtrado,
+                values='total_internacoes_regiao',
+                names='regiao_saude',
+                title='',
+                hole=0.5 # Para criar um gráfico de rosca
+            )
+            st.plotly_chart(fig_regioes_pie, use_container_width=True)
+        else:
+            st.info("Não há dados de internações para comparar entre as regiões de saúde com os filtros atuais.")
+
+
     
 
-        col1, col2 = st.columns(2)
-        with col1.container(border = True):
-            #Gráfico de Barras (Top 10)
-            st.subheader("Municípios com Mais Internações")
+    col8,col9 = st.columns(2)
+    st.subheader(" ",divider = True)
 
-            top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
-            fig_bar = px.bar(top10,
-                             x='total_internacoes',
-                             y='municipio',
-                             orientation='h',
-                             color='total_internacoes',
-                             color_continuous_scale='Reds',
-                             labels={'total_internacoes': 'Internações'}
-                            )
-            fig_bar.update_layout(coloraxis_showscale=False)
-            fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
-            st.plotly_chart(fig_bar, use_container_width=True)
+    # Fluxo de Pacientes (apenas se um município específico for selecionado)
+    with st.container(border = True): 
+        if municipio_selecionado != 'Todos os Municípios':
+            
+            # --- Query para Fluxo de Destino (pacientes que chegam AQUI) ---
+            query_fluxo_destino = f"""
+                SELECT
+                    mo.nome AS municipio_origem,
+                    COUNT(i.id) AS total_internacoes_aqui
+                FROM internacoes i
+                JOIN pacientes p ON i.paciente_id = p.id
+                JOIN municipios mo ON mo.codigo = p.codigo_municipio_residencia
+                JOIN estabelecimentos e ON i.estabelecimento_id = e.id
+                JOIN municipios mi ON mi.codigo = e.codigo_municipio_movimento
+                {cid_filter_join}
+                WHERE mi.nome = '{municipio_selecionado.replace("'", "''")}'
+                      {cid_filter_where}
+                GROUP BY mo.nome
+                ORDER BY total_internacoes_aqui DESC
+                LIMIT 10;
+            """
+            df_fluxo_destino = pd.read_sql_query(query_fluxo_destino, conn)
 
-        with col2.container(border = True):
-            st.subheader("Comparativo de Internações por Região de Saúde")
-            df_regioes_filtrado = df_regioes[df_regioes['regiao_saude'] != 'Paraná'].copy()
+            # --- Query para Fluxo de Origem (pacientes que saem DAQUI para outro lugar) ---
+            query_fluxo_origem = f"""
+                SELECT
+                    mi.nome AS municipio_internacao,
+                    COUNT(i.id) AS total_internacoes_fora
+                FROM internacoes i
+                JOIN pacientes p ON i.paciente_id = p.id
+                JOIN municipios mo ON mo.codigo = p.codigo_municipio_residencia
+                JOIN estabelecimentos e ON i.estabelecimento_id = e.id
+                JOIN municipios mi ON mi.codigo = e.codigo_municipio_movimento
+                {cid_filter_join}
+                WHERE mo.nome = '{municipio_selecionado.replace("'", "''")}'
+                      AND mi.nome != '{municipio_selecionado.replace("'", "''")}'
+                      {cid_filter_where}
+                GROUP BY mi.nome
+                ORDER BY total_internacoes_fora DESC
+                LIMIT 10;
+            """
+            df_fluxo_origem = pd.read_sql_query(query_fluxo_origem, conn)
 
-            if not df_regioes_filtrado.empty:
-                fig_regioes_pie = px.pie(
-                    df_regioes_filtrado,
-                    values='total_internacoes_regiao',
-                    names='regiao_saude',
-                    title='',
-                    hole=0.5 # Para criar um gráfico de rosca
-                )
-                st.plotly_chart(fig_regioes_pie, use_container_width=True)
-            else:
-                st.info("Não há dados de internações para comparar entre as regiões de saúde com os filtros atuais.")
+            # Verificando quais DataFrames têm dados
+            has_destino_data = not df_fluxo_destino.empty
+            has_origem_data = not df_fluxo_origem.empty
 
+            # --- Lógica Condicional para o Layout das Sub-colunas de Fluxo ---
+            if has_destino_data and has_origem_data:
+                # Ambas as queries retornaram dados: criar 2 colunas DENTRO de col_fluxo_geral
+                col_fluxo_d, col_fluxo_o = st.columns(2)
+                
+                with col_fluxo_d: # Não precisa de novo container com borda aqui, pois já estamos no container de col_fluxo_geral
+                    st.subheader(f"Origem de Pacientes Internados em {municipio_selecionado}")
+                    fig_fluxo_destino = px.bar(df_fluxo_destino,
+                                               x='municipio_origem',
+                                               y='total_internacoes_aqui',
+                                               orientation='v',
+                                               labels={'total_internacoes_aqui': 'Total de Internações', 'municipio_origem': 'Município de Origem'},
+                                               color='total_internacoes_aqui',
+                                               color_continuous_scale='Viridis')
+                    fig_fluxo_destino.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_fluxo_destino, use_container_width=True)
+                
+                with col_fluxo_o: # Não precisa de novo container com borda
+                    st.subheader(f"Destino de Pacientes Residentes de {municipio_selecionado}")
+                    fig_fluxo_origem = px.bar(df_fluxo_origem,
+                                               x='municipio_internacao',
+                                               y='total_internacoes_fora',
+                                               orientation='v',
+                                               labels={'total_internacoes_fora': 'Total de Internações', 'municipio_internacao': 'Município de Internação'},
+                                               color='total_internacoes_fora',
+                                               color_continuous_scale='Plasma')
+                    fig_fluxo_origem.update_layout(yaxis={'categoryorder':'total ascending'})
+                    st.plotly_chart(fig_fluxo_origem, use_container_width=True)
 
-
-
-    # --- Fluxo de Pacientes (apenas se um município específico for selecionado) ---
-    if municipio_selecionado != 'Todos os Municípios':
-        
-        query_fluxo_destino = f"""
-            SELECT
-                mo.nome AS municipio_origem,
-                COUNT(i.id) AS total_internacoes_aqui
-            FROM internacoes i
-            JOIN pacientes p ON i.paciente_id = p.id
-            JOIN municipios mo ON mo.codigo = p.codigo_municipio_residencia
-            JOIN estabelecimentos e ON i.estabelecimento_id = e.id
-            JOIN municipios mi ON mi.codigo = e.codigo_municipio_movimento
-            {cid_filter_join}
-            WHERE mi.nome = '{municipio_selecionado.replace("'", "''")}'
-                  {cid_filter_where}
-            GROUP BY mo.nome
-            ORDER BY total_internacoes_aqui DESC
-            LIMIT 10;
-        """
-        df_fluxo_destino = pd.read_sql_query(query_fluxo_destino, conn)
-
-        col8, col9 = st.columns(2)
-        with col8.container(border = True):
-            if not df_fluxo_destino.empty:
+            elif has_destino_data:
+                # Apenas o fluxo de destino tem dados: ocupa a largura total de col_fluxo_geral
+                st.subheader(f"Origem de Pacientes Internados em {municipio_selecionado}")
                 fig_fluxo_destino = px.bar(df_fluxo_destino,
                                            x='municipio_origem',
                                            y='total_internacoes_aqui',
@@ -274,35 +330,11 @@ def render(conn):
                                            color='total_internacoes_aqui',
                                            color_continuous_scale='Viridis')
                 fig_fluxo_destino.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.subheader(f"Origem de Pacientes Internados em {municipio_selecionado}")
                 st.plotly_chart(fig_fluxo_destino, use_container_width=True)
-            else:
-                st.info(f"Não há registros de pacientes de outros municípios internados em {municipio_selecionado}.")
 
-        
-        
-
-        query_fluxo_origem = f"""
-            SELECT
-                mi.nome AS municipio_internacao,
-                COUNT(i.id) AS total_internacoes_fora
-            FROM internacoes i
-            JOIN pacientes p ON i.paciente_id = p.id
-            JOIN municipios mo ON mo.codigo = p.codigo_municipio_residencia
-            JOIN estabelecimentos e ON i.estabelecimento_id = e.id
-            JOIN municipios mi ON mi.codigo = e.codigo_municipio_movimento
-            {cid_filter_join}
-            WHERE mo.nome = '{municipio_selecionado.replace("'", "''")}'
-                  AND mi.nome != '{municipio_selecionado.replace("'", "''")}'
-                  {cid_filter_where}
-            GROUP BY mi.nome
-            ORDER BY total_internacoes_fora DESC
-            LIMIT 10;
-        """
-        df_fluxo_origem = pd.read_sql_query(query_fluxo_origem, conn)
-        with col9.container(border = True):
-            if not df_fluxo_origem.empty:
-                
+            elif has_origem_data:
+                # Apenas o fluxo de origem tem dados: ocupa a largura total de col_fluxo_geral
+                st.subheader(f"Destino de Pacientes Residentes de {municipio_selecionado}")
                 fig_fluxo_origem = px.bar(df_fluxo_origem,
                                            x='municipio_internacao',
                                            y='total_internacoes_fora',
@@ -311,11 +343,78 @@ def render(conn):
                                            color='total_internacoes_fora',
                                            color_continuous_scale='Plasma')
                 fig_fluxo_origem.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.subheader(f"Destino de Pacientes Residentes de {municipio_selecionado}")
                 st.plotly_chart(fig_fluxo_origem, use_container_width=True)
             else:
-                st.info(f"Não há registros de pacientes residentes de {municipio_selecionado} internados em outros municípios.")
+                # Nenhuma das queries retornou dados
+                st.info(f"Não há registros de fluxo de pacientes para {municipio_selecionado} com os filtros atuais.")
+        
+        elif municipio_selecionado == 'Todos os Municípios':
+            st.info("Selecione um município específico para ver os gráficos de fluxo de pacientes.")
 
 
+    #Boxplot de idades 
+    st.subheader(" ",divider = True)
+    with st.container(border=True):
+        st.subheader("Distribuição da Idade dos Pacientes por Faixa Etária")
 
-#estou tendo um problema com o filtro de sexo, ao selecionar as opções do filtro, ele entra em um loading infinito, olhei as queries, e está tudo ok, quando uso os outros filtros(municipio e causas), eles funcionam corretamente, agora quando uso o de sexo, ele buga
+        current_month_day = datetime.now().strftime('%m%d')
+
+        query_idades = f"""
+            SELECT
+                CAST(strftime('%Y', 'now') - SUBSTR(p.data_nascimento, 1, 4) -
+                    (SUBSTR(p.data_nascimento, 5, 4) > '{current_month_day}') AS INTEGER) AS idade
+            FROM pacientes p
+            JOIN internacoes i ON i.paciente_id = p.id
+            JOIN municipios m ON p.codigo_municipio_residencia = m.codigo
+            {cid_filter_join}
+            WHERE p.data_nascimento IS NOT NULL AND LENGTH(p.data_nascimento) = 8
+            {cid_filter_where}
+            {f"AND m.codigo = '{cod_municipio_selecionado}'" if cod_municipio_selecionado else ""}
+            ;
+        """
+        df_idades = pd.read_sql_query(query_idades, conn)
+
+        if not df_idades.empty:
+            df_idades = df_idades[(df_idades['idade'] >= 0) & (df_idades['idade'] <= 120)]
+
+            # Definindo as faixas etárias
+            bins = [0, 11, 17, 24, 34, 44, 54, 64, 74, 120] # Limites superiores das faixas
+            labels = [
+                '0-11 anos (Crianças)',
+                '12-17 anos (Adolescentes)',
+                '18-24 anos (Jovens Adultos)',
+                '25-34 anos (Adultos Jovens)',
+                '35-44 anos (Adultos)',
+                '45-54 anos (Meia-idade)',
+                '55-64 anos (Idosos Jovens)',
+                '65-74 anos (Idosos)',
+                '75+ anos (Idosos Avançados)'
+            ]
+
+            # Criando a coluna de faixa etária
+            df_idades['faixa_etaria'] = pd.cut(df_idades['idade'], bins=bins, labels=labels, right=True, include_lowest=True)
+            
+            # Ordenar as faixas etárias para o gráfico
+            df_idades['faixa_etaria'] = pd.Categorical(df_idades['faixa_etaria'], categories=labels, ordered=True)
+
+            # Criando o Box Plot de idade por faixa etária
+            fig_idade_boxplot = px.box(
+                df_idades,
+                x='faixa_etaria', # Eixo X agora é a faixa etária
+                y='idade',
+                title='', 
+                labels={'faixa_etaria': 'Faixa Etária', 'idade': 'Idade do Paciente'},
+                points='outliers', 
+                color='faixa_etaria', # Cores diferentes para cada faixa
+                category_orders={"faixa_etaria": labels}
+            )
+            
+            fig_idade_boxplot.update_layout(
+                xaxis_title='Faixa Etária',
+                yaxis_title='Idade do Paciente',
+                xaxis_tickangle=-45 # Para evitar sobreposição dos rótulos
+            )
+
+            st.plotly_chart(fig_idade_boxplot, use_container_width=True)
+        else:
+            st.info("Nenhum dado de idade encontrado para os filtros selecionados.")
