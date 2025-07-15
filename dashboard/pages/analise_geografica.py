@@ -15,9 +15,9 @@ def render(conn):
     df_all_municipios_map = pd.read_sql_query(query_all_municipios_map, conn)
     df_all_municipios_map['cod_municipio'] = df_all_municipios_map['cod_municipio'].astype(str).str.zfill(6)
 
-    col_filters1, col_filters2 = st.columns(2)
-    with col_filters1:
+    col_filters1, col_filters2, col_filters3 = st.columns(3)
 
+    with col_filters1:
         query_all_municipios_names = """
             SELECT DISTINCT nome FROM municipios ORDER BY nome;
         """
@@ -28,16 +28,15 @@ def render(conn):
             options=['Todos os Municípios'] + lista_municipios,
             key="municipio_filter"
         )
+
         municipio_filter_for_causas = ""
         municipio_join_for_causas = ""
         if municipio_selecionado != 'Todos os Municípios':
-            # Primeiro, obter o código do município selecionado
             query_municipio_codigo = f"SELECT codigo FROM municipios WHERE nome = '{municipio_selecionado.replace("'", "''")}'"
             df_municipio_codigo = pd.read_sql_query(query_municipio_codigo, conn)
-            
+
             if not df_municipio_codigo.empty:
                 cod_municipio_selecionado = df_municipio_codigo['codigo'].iloc[0]
-                # Adicionamos o JOIN com pacientes e municípios para filtrar por residência do paciente
                 municipio_join_for_causas = """
                     JOIN internacoes i_filter ON c.codigo = i_filter.codigo_diagnostico_principal
                     JOIN pacientes p_filter ON i_filter.paciente_id = p_filter.id
@@ -45,13 +44,12 @@ def render(conn):
                 """
                 municipio_filter_for_causas = f"AND m_filter.codigo = '{cod_municipio_selecionado}'"
 
-        # Consulta para a lista de causas (CIDs) - AGORA FILTRADA PELO MUNICÍPIO
         query_causas = f"""
             SELECT DISTINCT c.codigo, c.descricao
             FROM cid_diagnosticos c
             {municipio_join_for_causas}
             WHERE 1=1 {municipio_filter_for_causas}
-            GROUP BY c.codigo, c.descricao -- Adicionado c.codigo para garantir GROUP BY correto
+            GROUP BY c.codigo, c.descricao
             ORDER BY c.descricao;
         """
         df_causas = pd.read_sql_query(query_causas, conn)
@@ -63,20 +61,35 @@ def render(conn):
             options=causa_options,
             key="causa_cid_filter"
         )
-    
-    # Lógica para determinar o ID do CID selecionado
+
+    with col_filters3:
+        query_sexo_lookup = "SELECT codigo, descricao FROM sexo ORDER BY descricao;"
+        df_sexo_lookup = pd.read_sql_query(query_sexo_lookup, conn)
+        sexo_options = ['Todos'] + df_sexo_lookup['descricao'].tolist()
+        sexo_selecionado = st.selectbox(
+            "Filtrar por Sexo:",
+            options=sexo_options,
+            key="sexo_filter"
+        )
+
     selected_cid_id = None
     if selected_causa_desc != 'Todas as Causas':
         selected_cid_row = df_causas[df_causas['descricao'] == selected_causa_desc]
         if not selected_cid_row.empty:
             selected_cid_id = selected_cid_row['codigo'].iloc[0]
 
-    # Cláusulas dinâmicas para o filtro de CID
     cid_filter_join = ""
     cid_filter_where = ""
     if selected_cid_id is not None:
-        cid_filter_join = "JOIN cid_diagnosticos c ON i.codigo_diagnostico_principal = c.codigo" 
+        cid_filter_join = "JOIN cid_diagnosticos c ON i.codigo_diagnostico_principal = c.codigo"
         cid_filter_where = f"AND c.codigo = '{selected_cid_id}'"
+
+    
+    sexo_filter_where = ""
+    if sexo_selecionado == 'Masculino':
+        sexo_filter_where = "AND p.codigo_sexo = 1"
+    elif sexo_selecionado == 'Feminino':
+        sexo_filter_where = "AND p.codigo_sexo= 3"
     
     # Consulta com código do município e contagem de internações
     query_contagem = f"""
@@ -91,7 +104,7 @@ def render(conn):
         JOIN pacientes p ON i.paciente_id = p.id
         JOIN municipios m ON m.codigo = p.codigo_municipio_residencia
         {cid_filter_join}
-        WHERE 1=1 {cid_filter_where}
+        WHERE 1=1 {sexo_filter_where}{cid_filter_where}
         GROUP BY m.codigo, m.nome, m.regiao_saude, m.populacao
         ORDER BY total_internacoes DESC;
     """
@@ -111,7 +124,7 @@ def render(conn):
         JOIN pacientes p ON i.paciente_id = p.id
         JOIN municipios m ON m.codigo = p.codigo_municipio_residencia
         {cid_filter_join}
-        WHERE m.regiao_saude IS NOT NULL AND m.regiao_saude != '' {cid_filter_where}
+        WHERE m.regiao_saude IS NOT NULL AND m.regiao_saude != '' {sexo_filter_where}{cid_filter_where}
         GROUP BY m.regiao_saude
         ORDER BY total_internacoes_regiao DESC;
     """
@@ -253,7 +266,7 @@ def render(conn):
             JOIN municipios mi ON mi.codigo = e.codigo_municipio_movimento
             {cid_filter_join}
             WHERE mi.nome = '{municipio_selecionado.replace("'", "''")}'
-                  {cid_filter_where}
+                  {sexo_filter_where}{cid_filter_where}
             GROUP BY mo.nome
             ORDER BY total_internacoes_aqui DESC
             LIMIT 10;
@@ -291,7 +304,7 @@ def render(conn):
             {cid_filter_join}
             WHERE mo.nome = '{municipio_selecionado.replace("'", "''")}'
                   AND mi.nome != '{municipio_selecionado.replace("'", "''")}'
-                  {cid_filter_where}
+                  {sexo_filter_where}{cid_filter_where}
             GROUP BY mi.nome
             ORDER BY total_internacoes_fora DESC
             LIMIT 10;
@@ -312,3 +325,7 @@ def render(conn):
                 st.plotly_chart(fig_fluxo_origem, use_container_width=True)
             else:
                 st.info(f"Não há registros de pacientes residentes de {municipio_selecionado} internados em outros municípios.")
+
+
+
+#estou tendo um problema com o filtro de sexo, ao selecionar as opções do filtro, ele entra em um loading infinito, olhei as queries, e está tudo ok, quando uso os outros filtros(municipio e causas), eles funcionam corretamente, agora quando uso o de sexo, ele buga
