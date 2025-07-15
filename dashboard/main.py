@@ -93,7 +93,7 @@ def load_main_data():
         AND vf.valor_total > 0
     """
     df = pd.read_sql_query(query, conn)
-    conn.close()
+    
     return df
 
 # Função de navegação com pills
@@ -161,9 +161,15 @@ def main():
         elif selected_page == "👥 Análise Demográfica":
             analise_demografica.render(data)
         elif selected_page == "🗺️ Análise Geográfica":
+<<<<<<< HEAD
             analise_geografica.render(data)
         elif selected_page == "🤖 Machine Learning":
             machine_learning.render(data)
+=======
+            analise_geografica.render(get_database_connection())
+        elif selected_page == "📈 Análise Temporal":
+            analise_temporal.render(data)
+>>>>>>> f3f6585085e39281492658ab69afaf47e82e78e2
         elif selected_page == "💰 Gestão de Recursos":
             gestao_recursos.render(data)
         elif selected_page == "💡 Recomendações":
