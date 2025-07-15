@@ -15,7 +15,7 @@ def render(conn):
     df_all_municipios_map = pd.read_sql_query(query_all_municipios_map, conn)
     df_all_municipios_map['cod_municipio'] = df_all_municipios_map['cod_municipio'].astype(str).str.zfill(6)
 
-    col_filters1, col_filters2, col_filters3 = st.columns(3)
+    col_filters1, col_filters2 = st.columns(2)
 
     with col_filters1:
         query_all_municipios_names = """
@@ -62,15 +62,7 @@ def render(conn):
             key="causa_cid_filter"
         )
 
-    with col_filters3:
-        query_sexo_lookup = "SELECT codigo, descricao FROM sexo ORDER BY descricao;"
-        df_sexo_lookup = pd.read_sql_query(query_sexo_lookup, conn)
-        sexo_options = ['Todos'] + df_sexo_lookup['descricao'].tolist()
-        sexo_selecionado = st.selectbox(
-            "Filtrar por Sexo:",
-            options=sexo_options,
-            key="sexo_filter"
-        )
+    
 
     selected_cid_id = None
     if selected_causa_desc != 'Todas as Causas':
@@ -85,11 +77,7 @@ def render(conn):
         cid_filter_where = f"AND c.codigo = '{selected_cid_id}'"
 
     
-    sexo_filter_where = ""
-    if sexo_selecionado == 'Masculino':
-        sexo_filter_where = "AND p.codigo_sexo = 1"
-    elif sexo_selecionado == 'Feminino':
-        sexo_filter_where = "AND p.codigo_sexo= 3"
+    
     
     # Consulta com código do município e contagem de internações
     query_contagem = f"""
@@ -104,7 +92,7 @@ def render(conn):
         JOIN pacientes p ON i.paciente_id = p.id
         JOIN municipios m ON m.codigo = p.codigo_municipio_residencia
         {cid_filter_join}
-        WHERE 1=1 {sexo_filter_where}{cid_filter_where}
+        WHERE 1=1 {cid_filter_where}
         GROUP BY m.codigo, m.nome, m.regiao_saude, m.populacao
         ORDER BY total_internacoes DESC;
     """
@@ -124,7 +112,7 @@ def render(conn):
         JOIN pacientes p ON i.paciente_id = p.id
         JOIN municipios m ON m.codigo = p.codigo_municipio_residencia
         {cid_filter_join}
-        WHERE m.regiao_saude IS NOT NULL AND m.regiao_saude != '' {sexo_filter_where}{cid_filter_where}
+        WHERE m.regiao_saude IS NOT NULL AND m.regiao_saude != '' {cid_filter_where}
         GROUP BY m.regiao_saude
         ORDER BY total_internacoes_regiao DESC;
     """
@@ -215,11 +203,12 @@ def render(conn):
             st.metric(label="Pacientes Residentes Internados (Geral)", value=f"{total_pacientes_geral:,}".replace(",", "."))
         with st.container(border = True):
             st.plotly_chart(fig_map, use_container_width=True)
+    
 
         col1, col2 = st.columns(2)
         with col1.container(border = True):
             #Gráfico de Barras (Top 10)
-            st.subheader("Top 10 Municípios com Mais Internações")
+            st.subheader("Municípios com Mais Internações")
 
             top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
             fig_bar = px.bar(top10,
@@ -228,9 +217,10 @@ def render(conn):
                              orientation='h',
                              color='total_internacoes',
                              color_continuous_scale='Reds',
-                             labels={'total_internacoes': 'Internações'})
-
-            fig_bar.update_layout(yaxis={'categoryorder':'total ascending'})
+                             labels={'total_internacoes': 'Internações'}
+                            )
+            fig_bar.update_layout(coloraxis_showscale=False)
+            fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
             st.plotly_chart(fig_bar, use_container_width=True)
 
         with col2.container(border = True):
@@ -266,7 +256,7 @@ def render(conn):
             JOIN municipios mi ON mi.codigo = e.codigo_municipio_movimento
             {cid_filter_join}
             WHERE mi.nome = '{municipio_selecionado.replace("'", "''")}'
-                  {sexo_filter_where}{cid_filter_where}
+                  {cid_filter_where}
             GROUP BY mo.nome
             ORDER BY total_internacoes_aqui DESC
             LIMIT 10;
@@ -304,7 +294,7 @@ def render(conn):
             {cid_filter_join}
             WHERE mo.nome = '{municipio_selecionado.replace("'", "''")}'
                   AND mi.nome != '{municipio_selecionado.replace("'", "''")}'
-                  {sexo_filter_where}{cid_filter_where}
+                  {cid_filter_where}
             GROUP BY mi.nome
             ORDER BY total_internacoes_fora DESC
             LIMIT 10;
