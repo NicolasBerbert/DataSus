@@ -209,12 +209,12 @@ def modelo_predicao_permanencia(data):
     """Predição de Tempo de Permanência"""
     render_styled_section_card(
         "Predição de Tempo de Permanência",
-        "Estimativa do tempo de internação baseada em características do paciente e procedimento",
-        "🏥"
+        "Estimativa do tempo de internação baseada em características do paciente e procedimento"
     )
     
     # Simulador interativo
-    st.markdown("#### 🎯 Simulador de Predição")
+    st.markdown("---")
+    st.markdown(f"<h2 style='text-align: center;'>Simulador de Predição</h2>", unsafe_allow_html=True)
     
     # Obter opções únicas dos dados
     sexos_unicos = sorted(data['sexo'].dropna().unique())
@@ -341,12 +341,13 @@ def modelo_predicao_custos(data):
     """Predição de Custos de Internação"""
     render_styled_section_card(
         "Predição de Custos de Internação",
-        "Estimativa de custos baseada em características clínicas e demográficas",
-        "💰"
+        "Estimativa de custos baseada em características clínicas e demográficas"
     )
     
     # Simulador de custos
-    st.markdown("#### 💳 Simulador de Custos")
+    st.markdown("---")
+    st.markdown(f"<h2 style='text-align: center;'>Simulador de Custos</h2>", unsafe_allow_html=True)
+
     
     # Obter opções únicas dos dados
     sexos_unicos = sorted(data['sexo'].dropna().unique())
@@ -440,8 +441,7 @@ def modelo_predicao_custos(data):
                 render_styled_ml_metric(
                     "Custo Estimado",
                     f"R$ {custo_pred:,.2f}",
-                    "Valor previsto para a internação",
-                    "💰"
+                    "Valor previsto para a internação"
                 )
                 
                 # Comparação com média
@@ -482,8 +482,7 @@ def modelo_deteccao_anomalias(data):
     """Detecção de Anomalias em Custos"""
     render_styled_section_card(
         "Detecção de Anomalias em Custos",
-        "Identificação de internações com custos atípicos para análise e auditoria",
-        "🔍"
+        "Identificação de internações com custos atípicos para análise e auditoria"
     )
     
     # Preparar dados para detecção de anomalias
@@ -528,23 +527,20 @@ def modelo_deteccao_anomalias(data):
         render_styled_ml_metric(
             "Total de Anomalias",
             f"{n_anomalias:,}",
-            "Internações com custos atípicos",
-            "🚨"
+            "Internações com custos atípicos"
         )
     with col2:
         render_styled_ml_metric(
             "Proporção de Anomalias",
             f"{prop_anomalias:.1f}%",
-            "Percentual sobre total de internações",
-            "📊"
+            "Percentual sobre total de internações"
         )
     with col3:
         custo_medio_anomalia = data_clean[data_clean['anomalia'] == -1]['valor_total'].mean()
         render_styled_ml_metric(
             "Custo Médio das Anomalias",
             f"R$ {custo_medio_anomalia:,.2f}",
-            "Valor médio das internações anômalas",
-            "💰"
+            "Valor médio das internações anômalas"
         )
     
     st.markdown("---")
@@ -552,8 +548,7 @@ def modelo_deteccao_anomalias(data):
     # Análise por especialidade com estilo
     render_styled_section_card(
         "Análise por Especialidade",
-        "Distribuição de anomalias por área médica",
-        "🏥"
+        "Distribuição de anomalias por área médica"
     )
     
     anomalias_por_esp = data_clean.groupby(['especialidade', 'anomalia_label']).size().unstack(fill_value=0)
@@ -572,20 +567,20 @@ def modelo_deteccao_anomalias(data):
     )
     fig.update_layout(height=400, showlegend=False)
     fig.update_coloraxes(showscale=False)
-    st.plotly_chart(fig, use_container_width=True)
+    with st.container(border = True):
+        st.plotly_chart(fig, use_container_width=True)
     
     st.markdown("---")
     
     # Análise de custo vs tempo
     render_styled_section_card(
         "Análise de Custo vs Tempo",
-        "Relação entre custo e tempo de permanência",
-        "📊"
+        "Relação entre custo e tempo de permanência"
     )
     
     col1, col2 = st.columns(2)
     
-    with col1:
+    with col1.container(border = True):
         # Violin plot para melhor visualização da distribuição
         fig = px.violin(
             data_clean,
@@ -601,7 +596,7 @@ def modelo_deteccao_anomalias(data):
         fig.update_yaxes(title="Valor Total (R$)")
         st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col2.container(border = True):
         # Scatter plot mais limpo
         fig = px.scatter(
             data_clean,
@@ -633,8 +628,7 @@ def modelo_deteccao_anomalias(data):
         # Top anomalias com estabelecimentos
         render_styled_section_card(
             "Principais Anomalias Detectadas",
-            "Internações com maiores desvios de custo para análise",
-            "🚨"
+            "Internações com maiores desvios de custo para análise"
         )
         
         # Preparar dados para exibição
@@ -708,7 +702,7 @@ def render_styled_ml_metric(title, value, help_text, icon=None):
     </div>
     """, unsafe_allow_html=True)
 
-def render_styled_section_card(title, content, icon="📊"):
+def render_styled_section_card(title, content):
     """Renderiza uma seção estilizada"""
     st.markdown(f"""
     <div style="
@@ -720,7 +714,6 @@ def render_styled_section_card(title, content, icon="📊"):
         border-left: 4px solid #667eea;
     ">
         <div style="display: flex; align-items: center; margin-bottom: 1rem;">
-            <span style="font-size: 1.5rem; margin-right: 1rem;">{icon}</span>
             <h3 style="margin: 0; color: #2c3e50;">{title}</h3>
         </div>
         <div style="color: #495057;">
@@ -731,17 +724,17 @@ def render_styled_section_card(title, content, icon="📊"):
 
 def render(data):
     """Renderiza a página de Machine Learning"""
-    
-    st.markdown("## Análises de Machine Learning")
-    st.markdown("**Modelos preditivos e análises avançadas para otimização da gestão hospitalar**")
+    st.markdown(f"<h1 style='text-align: center;'>Análises de Machine Learning</h1>", unsafe_allow_html=True)
+    st.markdown(f"<h4 style='text-align: center;'>Modelos preditivos e análises avançadas para otimização da gestão hospitalar</h4>", unsafe_allow_html=True)
+
     
     # Menu de seleção de análises com estilo
     st.markdown("### Selecione a Análise")
     
     analises_disponiveis = {
-        "🏥 Predição de Tempo de Permanência": modelo_predicao_permanencia,
-        "💰 Predição de Custos de Internação": modelo_predicao_custos,
-        "🔍 Detecção de Anomalias em Custos": modelo_deteccao_anomalias
+        " Predição de Tempo de Permanência": modelo_predicao_permanencia,
+        " Predição de Custos de Internação": modelo_predicao_custos,
+        " Detecção de Anomalias em Custos": modelo_deteccao_anomalias
     }
     
     analise_selecionada = st.selectbox(

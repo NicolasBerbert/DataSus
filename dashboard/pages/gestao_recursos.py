@@ -9,16 +9,16 @@ conn = get_database_connection()
 
 def render(data):
     """ Página de Gestão de Recursos | Responsável: [NOME_DESENVOLVEDOR_6] """
+    st.markdown(f"<h1 style='text-align: center;'>Gestão de Recursos</h1>", unsafe_allow_html=True)
 
-    st.markdown("## Gestão de Recursos")
     st.markdown("---")
 
     # Navegação por abas
     aba1, aba2, aba3, aba4 = st.tabs([
-        "📋 Classificação & Filtros", 
-        "📊 Diagnóstico", 
-        "🚨 Outliers", 
-        "🏥 Estabelecimentos"
+        " Classificação & Filtros", 
+        " Diagnóstico", 
+        " Outliers", 
+        " Estabelecimentos"
     ])
 
     # =========== ABA 1 ===========
@@ -51,7 +51,7 @@ def render(data):
         """  
         df_gravidade = pd.read_sql_query(query_gravidade, conn)
 
-        st.markdown("### 🔍 Filtros Interativos")
+        st.markdown("### Filtros Interativos")
 
                 # Filtros horizontais
         colf1, colf2, colf3, colf4 = st.columns(4)
@@ -73,6 +73,7 @@ def render(data):
             df_filtrado = df_filtrado[df_filtrado["gravidade"] == gravidade_opcao]
         df_filtrado = df_filtrado[(df_filtrado["idade_anos"] >= idade_min) & (df_filtrado["idade_anos"] <= idade_max)]
 
+        st.markdown(f"<h2 style='text-align: center;'>Métricas Principais</h2>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns(3)
 
         with col1:
@@ -96,9 +97,24 @@ def render(data):
                 "Tempo médio de permanência",
                 "⏱️"
             )
+        st.markdown("---")
+        with st.container(border = True):
+            st.markdown(f"<h2 style='text-align: center;'> Tabela de Pacientes Filtrados</h2>", unsafe_allow_html=True)
+            colunas_exibir = ['paciente_id','idade_anos','sexo','data_nascimento','municipio_residencia', 'cid_codigo','cid_descricao','gravidade','total_gasto','media_dias','total_internacoes']
+            st.dataframe(df_filtrado[colunas_exibir].rename(columns={
+                'paciente_id':'ID Paciente',
+                'idade_anos':'Idade',
+                'sexo':'Sexo',
+                'data_nascimento':'Data de Nascimento',
+                'municipio_residencia':'Município Resindência',
+                'cid_codigo':'Código CID',
+                'cid_descricao':'Descrição CID',
+                'gravidade':'Gravidade',
+                'total_gasto':'Total Gasto',
+                'media_dias':'Média de Dias',
+                'total_internacoes':'Total de Internações'
+            }), use_container_width=True)
 
-        st.markdown("### 📄 Tabela de Pacientes Filtrados")
-        st.dataframe(df_filtrado, use_container_width=True)
         
         fig_bolhas = px.scatter(
             df_filtrado,
@@ -117,10 +133,10 @@ def render(data):
                 "total_gasto": "Gasto Total (R$)",
                 "total_internacoes": "Internações"
             },
-            title="🫧 Relação entre Tempo, Gasto e Volume de Internações"
         )
-
-        st.plotly_chart(fig_bolhas, use_container_width=True)
+        with st.container(border = True):
+            st.markdown(f"<h3 style='text-align: center;'> Relaçaõ entre Tempo, Gasto e Volume de Internações</h3>", unsafe_allow_html=True)
+            st.plotly_chart(fig_bolhas, use_container_width=True)
 
 
     # =========== ABA 2 ===========
@@ -141,7 +157,7 @@ def render(data):
 
         df_diag = pd.read_sql_query(query_diag, conn)
 
-        st.markdown("### 🔍 Filtros por Diagnóstico")
+        st.markdown("### Filtros por Diagnóstico")
 
         # Filtros horizontais com ordem invertida
         colf1, colf2, colf3 = st.columns(3)
@@ -153,17 +169,17 @@ def render(data):
                 "Média (51–200)": (51, 200),
                 "Alta (201+)": (201, float("inf"))
             }
-            faixa_opcao = st.selectbox("📊 Faixa de Internações", list(faixa_interv.keys()))
+            faixa_opcao = st.selectbox("Faixa de Internações", list(faixa_interv.keys()))
             interv_min, interv_max = faixa_interv[faixa_opcao]
 
         with colf2:
-            faixa_custo = st.slider("💸 Faixa de Custo Médio (R$)",
+            faixa_custo = st.slider("Faixa de Custo Médio (R$)",
                                     float(df_diag["valor_medio"].min()),
                                     float(df_diag["valor_medio"].max()),
                                     (float(df_diag["valor_medio"].min()), float(df_diag["valor_medio"].max())))
 
         with colf3:
-            cid_opcao = st.selectbox("🧠 Diagnóstico", ["Todos"] + sorted(df_diag["diagnostico"].dropna().unique().tolist()))
+            cid_opcao = st.selectbox("Diagnóstico", ["Todos"] + sorted(df_diag["diagnostico"].dropna().unique().tolist()))
 
         # Aplicando filtros
         df_filtrado = df_diag.copy()
@@ -173,8 +189,8 @@ def render(data):
             (df_filtrado["valor_medio"] >= faixa_custo[0]) & (df_filtrado["valor_medio"] <= faixa_custo[1]) &
             (df_filtrado["total_internacoes"] >= interv_min) & (df_filtrado["total_internacoes"] <= interv_max)
         ]
-
-        st.markdown("### 📈 Custo Médio por Diagnóstico Principal (Filtrado)")
+        
+        st.markdown(f"<h2 style='text-align: center;'>Custo Médio por Diagnóstico Principal (Filtrado)</h2>", unsafe_allow_html=True)
 
         col1, col2, col3, col4 = st.columns(4)
         with col1:
@@ -205,18 +221,25 @@ def render(data):
                 "Valor total gasto",
                 "💰"
             )
-
-        st.dataframe(df_filtrado, use_container_width=True)
+        colunas_exibir = ['cid', 'diagnostico', 'total_internacoes', 'valor_medio', 'valor_total']
+        st.dataframe(df_filtrado[colunas_exibir].rename(columns={
+            'cid': 'CID',
+            'diagnostico': 'Diagnóstico',
+            'total_internacoes': 'Total de Internações',
+            'valor_medio': 'Valor Médio',
+            'valor_total': 'Valor Total'
+        }), use_container_width=True)
 
         fig_diag = px.bar(df_filtrado, x="diagnostico", y="valor_medio",
-                        title="💰 Custo Médio por Diagnóstico (Filtrado)",
-                        labels={"valor_medio": "Valor Médio (R$)", "diagnostico": "CID"},
+                        labels={"Valor Médio": "Valor Médio (R$)", "Diagnóstico": "CID"},
                         text_auto=".2s",
                         color="valor_medio",
                         color_continuous_scale=['#eff6ff', '#1e3a8a'])
         fig_diag.update_layout(showlegend=False)
         fig_diag.update_coloraxes(showscale=False)
-        st.plotly_chart(fig_diag, use_container_width=True)
+        with st.container(border = True):
+            st.markdown(f"<h2 style='text-align: center;'>Custo Médio por Diagnóstico (Filtrado)</h2>", unsafe_allow_html=True)
+            st.plotly_chart(fig_diag, use_container_width=True)
 
     # =========== ABA 3 ===========
     with aba3:
@@ -252,7 +275,7 @@ def render(data):
         # Filtra outliers
         outliers = df_outliers[df_outliers["valor_total"] > limite_superior]
 
-        st.markdown("### 🚨 Internações com Gasto Elevado (Outliers)")
+        st.markdown("###  Internações com Gasto Elevado (Outliers)")
         with st.expander("📌 O que são Outliers Financeiros?"):
             st.markdown("""
             Outliers são internações cujo **gasto total excede significativamente o padrão**, baseado no intervalo interquartil (IQR) da distribuição financeira.  
@@ -267,14 +290,14 @@ def render(data):
             """)
         
         # Filtros interativos
-        st.markdown("### 🔍 Filtros")
+        st.markdown("###  Filtros")
         colf1, colf2, colf3 = st.columns(3)
         with colf1:
-            municipio_outlier = st.selectbox("📍 Município", ["Todos"] + sorted(outliers["municipio"].dropna().unique().tolist()))
+            municipio_outlier = st.selectbox(" Município", ["Todos"] + sorted(outliers["municipio"].dropna().unique().tolist()))
         with colf2:
-            diag_outlier = st.selectbox("🧠 Diagnóstico", ["Todos"] + sorted(outliers["diagnostico"].dropna().unique().tolist()))
+            diag_outlier = st.selectbox(" Diagnóstico", ["Todos"] + sorted(outliers["diagnostico"].dropna().unique().tolist()))
         with colf3:
-            hospital_outlier = st.selectbox("🏥 Estabelecimento", ["Todos"] + sorted(outliers["nome_estabelecimento"].dropna().unique().tolist()))
+            hospital_outlier = st.selectbox(" Estabelecimento", ["Todos"] + sorted(outliers["nome_estabelecimento"].dropna().unique().tolist()))
 
         # Aplicando filtros
         df_filtered_outliers = outliers.copy()
@@ -310,9 +333,32 @@ def render(data):
                 "Tempo máximo de permanência",
                 "⏱️"
             )
-
-        st.markdown("### 📋 Tabela de Outliers Filtrados")
-        st.dataframe(df_filtered_outliers, use_container_width=True)
+        with st.container(border = True):
+            st.markdown(f"<h2 style='text-align: center;'>Tabela de Outliers Filtrados</h2>", unsafe_allow_html=True)
+            colunas_exibir_outliers = [
+                'internacao_id',
+                'paciente_id', # Use 'paciente_id' as it comes from the query
+                'idade_anos',  # Use 'idade_anos'
+                'cid',         # Use 'cid'
+                'diagnostico', # Use 'diagnostico'
+                'municipio',
+                'nome_estabelecimento',
+                'tipo_gestao',
+                'dias_permanencia',
+                'valor_total'  # Use 'valor_total'
+            ]
+            st.dataframe(df_filtered_outliers[colunas_exibir_outliers].rename(columns={
+                'internacao_id': 'ID Internação',
+                'paciente_id': 'ID Paciente',
+                'idade_anos': 'Idade',
+                'cid': 'CID',
+                'diagnostico': 'Diagnóstico',
+                'municipio': 'Município',
+                'nome_estabelecimento': 'Nome do Estabelecimento',
+                'tipo_gestao': 'Tipo de Gestão',
+                'dias_permanencia': 'Permanência (Dias)',
+                'valor_total': 'Valor Total'
+            }), use_container_width=True)
 
     # =========== ABA 4 ===========
     with aba4:
@@ -337,16 +383,16 @@ def render(data):
 
         df_estabs = pd.read_sql_query(query_estabs, conn)
 
-        st.markdown("### 🔍 Filtros de Estabelecimentos")
+        st.markdown("### Filtros de Estabelecimentos")
 
         # Filtros horizontais
         colf1, colf2, colf3 = st.columns(3)
         with colf1:
-            municipio_opcao = st.selectbox("📍 Município", ["Todos"] + sorted(df_estabs["municipio"].dropna().unique().tolist()))
+            municipio_opcao = st.selectbox(" Município", ["Todos"] + sorted(df_estabs["municipio"].dropna().unique().tolist()))
         with colf2:
-            gestao_opcao = st.selectbox("🏢 Tipo de Gestão", ["Todos"] + sorted(df_estabs["tipo_gestao"].dropna().unique().tolist()))
+            gestao_opcao = st.selectbox(" Tipo de Gestão", ["Todos"] + sorted(df_estabs["tipo_gestao"].dropna().unique().tolist()))
         with colf3:
-            estab_opcao = st.selectbox("🏥 Estabelecimento", ["Todos"] + sorted(df_estabs["nome_estabelecimento"].dropna().unique().tolist()))
+            estab_opcao = st.selectbox(" Estabelecimento", ["Todos"] + sorted(df_estabs["nome_estabelecimento"].dropna().unique().tolist()))
 
         # Aplicando filtros
         df_filtrado = df_estabs.copy()
@@ -357,7 +403,7 @@ def render(data):
         if estab_opcao != "Todos":
             df_filtrado = df_filtrado[df_filtrado["nome_estabelecimento"] == estab_opcao]
 
-        st.markdown("### 🧾 Gastos por Estabelecimento Filtrado")
+        st.markdown(f"<h2 style='text-align: center;'>Gastos por Estabelecimento Filtrado</h2>", unsafe_allow_html=True)
 
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -381,32 +427,44 @@ def render(data):
                 "Valor total investido",
                 "💰"
             )
+        colunas_exibir = ['nome_estabelecimento', 'cnpj_hospital', 'municipio', 'tipo_gestao', 'total_internacoes', 'total_gasto', 'gasto_medio']
+        st.dataframe(df_filtrado[colunas_exibir].rename(columns={
+            'nome_estabelecimento': 'Nome do Estabelecimento',
+            'cnpj_hospital': 'CNPJ',
+            'municipio': 'Município',
+            'tipo_gestao': 'Tipo de Gestão',
+            'total_internacoes': 'Total de Internações',
+            'total_gasto': 'Total de Gastos',
+            'gasto_medio': 'Gasto Médio'
+        }), use_container_width=True)
 
-        st.dataframe(df_filtrado, use_container_width=True)
 
         # GRÁFICOS ESTÁTICOS BASEADOS NO DATAFRAME ORIGINAL (SEM FILTROS)
-        st.markdown("### 📈 Gráficos Globais")
+        st.markdown("---")
+        st.markdown(f"<h2 style='text-align: center;'>Gráficos Globais</h2>", unsafe_allow_html=True)
 
         # Top 10 Estabelecimentos por Gasto
         top10 = df_estabs.head(10)
         fig_top10 = px.bar(top10, x="nome_estabelecimento", y="total_gasto",
-                        title="🏥 Top 10 Estabelecimentos por Gasto (Geral)",
                         labels={"total_gasto": "Gasto Total (R$)", "nome_estabelecimento": "Estabelecimento"},
                         color="total_gasto", text_auto=".2s",
                         color_continuous_scale=['#eff6ff', '#1e3a8a'])
         fig_top10.update_layout(showlegend=False)
         fig_top10.update_coloraxes(showscale=False)
-        st.plotly_chart(fig_top10, use_container_width=True)
+        with st.container(border = True):
+            st.markdown(f"<h3 style='text-align: center;'>Top Estabelecimentos por Gasto (Geral)</h3>", unsafe_allow_html=True)
+            st.plotly_chart(fig_top10, use_container_width=True)
 
         # Gasto Médio por Tipo de Gestão
         media_por_gestao = df_estabs.groupby("tipo_gestao")["gasto_medio"].mean().reset_index()
         fig_gestao = px.bar(media_por_gestao, x="tipo_gestao", y="gasto_medio",
-                            title="💼 Gasto Médio por Tipo de Gestão (Geral)",
                             labels={"gasto_medio": "Valor Médio (R$)", "tipo_gestao": "Gestão"},
                             color="gasto_medio",
                             text_auto=".2f",
                             color_continuous_scale=['#eff6ff', '#1e3a8a'])
         fig_gestao.update_layout(showlegend=False)
         fig_gestao.update_coloraxes(showscale=False)
-        st.plotly_chart(fig_gestao, use_container_width=True)
+        with st.container(border = True):
+            st.markdown(f"<h3 style='text-align: center;'>Gasto Médio por Tipo de Gestão (Geral)</h3>", unsafe_allow_html=True)
+            st.plotly_chart(fig_gestao, use_container_width=True)
 

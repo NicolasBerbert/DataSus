@@ -97,8 +97,8 @@ def render_styled_metric(title, value, help_text, icon=None):
 
 def render(data):
     """Renderiza a página de Causas Principais"""
-    
-    st.markdown("## Causas Principais de Internação")
+    st.markdown(f"<h1 style='text-align: center;'>Causas Principais de Internação</h1>", unsafe_allow_html=True)
+
     
     # Renderizar filtros
     filters = render_filters(data)
@@ -125,7 +125,8 @@ def render(data):
     df_filtrado['faixa_etaria'] = pd.cut(df_filtrado['idade_anos'], bins=bins, labels=labels, right=False)
 
     # ========== CARDS DE KPIs ==========
-    st.markdown("### Métricas Principais")
+    st.markdown(f"<h2 style='text-align: center;'>Métricas Principais</h2>", unsafe_allow_html=True)
+
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -160,101 +161,37 @@ def render(data):
             f"{media_permanencia:.1f} dias",
             "Tempo médio de permanência hospitalar"
         )
-
-    st.markdown("---")
     
     # ========== TOP 10 CAUSAS ==========
-    st.markdown("### Top 10 Causas de Internação")
-    
-    top_10_causas = df_filtrado['diagnostico_principal'].value_counts().nlargest(10)
-    percentuais_causas = (top_10_causas / total_internacoes) * 100
-    
-    # Gráfico de barras horizontal com cores azuis
-    fig_ranking = px.bar(
-        x=top_10_causas.values,
-        y=top_10_causas.index,
-        orientation='h',
-        title='Top 10 Diagnósticos Mais Frequentes',
-        labels={'x':'Número de Internações', 'y':'CID-10'},
-        color=top_10_causas.values,
-        color_continuous_scale=['#eff6ff', '#1e3a8a']
-    )
-    fig_ranking.update_layout(height=400, showlegend=False)
-    fig_ranking.update_coloraxes(showscale=False)
-    st.plotly_chart(fig_ranking, use_container_width=True)
-    
-    # Ranking detalhado em cards horizontais
-    st.markdown("### Ranking Detalhado")
-    
-    for i, (diagnostico, casos) in enumerate(top_10_causas.items(), 1):
-        percentual = (casos / total_internacoes * 100)
-        
-        # Cores em tons de azul para as posições
-        cores_azuis_ranking = [
-            "#1e3a8a", "#1e40af", "#1d4ed8", "#2563eb", "#3b82f6",
-            "#60a5fa", "#93c5fd", "#bfdbfe", "#dbeafe", "#e0f2fe"
-        ]
-        cor = cores_azuis_ranking[i-1] if i <= len(cores_azuis_ranking) else "#64748b"
-        
-        # Gradiente de azul escuro para azul médio, mantendo visibilidade com texto branco
-        cores_azul_gradiente = [
-            "#0077CC", "#1A93FF", "#339FFF", "#4DABFF", "#66B7FF",
-            "#80C3FF", "#99CFFF", "#B3DBFF", "#CCE7FF", "#E6F3FF"
-        ]
-        cor_fundo = cores_azul_gradiente[i-1] if i <= len(cores_azul_gradiente) else "#0f172a"
-        cor_borda = "#2563eb"
-        
-        st.markdown(f"""
-        <div style="
-            background: {cor_fundo};
-            padding: 1rem 1.5rem;
-            border-radius: 10px;
-            margin: 0.5rem 0;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            border-left: 4px solid {cor_borda};
-        ">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div style="display: flex; align-items: center;">
-                    <div style="
-                        background: {cor_borda};
-                        color: white;
-                        width: 40px;
-                        height: 40px;
-                        border-radius: 50%;
-                        display: flex;
-                        align-items: center;
-                        justify-content: center;
-                        margin-right: 1rem;
-                        font-weight: bold;
-                        font-size: 1.2rem;
-                    ">
-                        {i}º
-                    </div>
-                    <div>
-                        <h4 style="margin: 0; font-size: 1rem; color: #1a1a1a;">
-                            {diagnostico}
-                        </h4>
-                    </div>
-                </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 1.4rem; font-weight: bold; color: #1a1a1a;">
-                        {casos:,} casos
-                    </div>
-                    <div style="font-size: 0.9rem; color: rgba(26, 26, 26, 0.8);">
-                        {percentual:.1f}% do total
-                    </div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+    with st.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Top 10 Causas de Internação</h3>", unsafe_allow_html=True)
 
-    st.markdown("---")
+        
+        top_10_causas = df_filtrado['diagnostico_principal'].value_counts().nlargest(10)
+        percentuais_causas = (top_10_causas / total_internacoes) * 100
+        
+        # Gráfico de barras horizontal com cores azuis
+        fig_ranking = px.bar(
+            x=top_10_causas.values,
+            y=top_10_causas.index,
+            orientation='h',
+            labels={'x':'Número de Internações', 'y':'CID-10'},
+            color=top_10_causas.values,
+            color_continuous_scale=['#eff6ff', '#1e3a8a']
+        )
+        fig_ranking.update_layout(height=400, showlegend=False)
+        fig_ranking.update_coloraxes(showscale=False)
+        st.plotly_chart(fig_ranking, use_container_width=True)
+        
+        
+       
+
     
     # ========== SENSIBILIDADE + FAIXA ETÁRIA ==========
     col1, col2 = st.columns(2)
 
-    with col1:
-        st.markdown("### Sensibilidade à Atenção Básica")
+    with col1.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Distribuição de Internações</h3>", unsafe_allow_html=True)
         sensivel_counts = df_filtrado['sensivel_atencao_basica'].value_counts()
         if not sensivel_counts.empty:
             sensivel = sensivel_counts.get(1, 0)
@@ -264,7 +201,6 @@ def render(data):
 
             fig_sensibilidade = px.pie(
                 names=labels, values=values,
-                title='Distribuição de Internações',
                 hole=0.4,
                 color_discrete_sequence=['#1e40af', '#60a5fa']
             )
@@ -286,96 +222,99 @@ def render(data):
             Isso torna o indicador uma forma importante de **avaliar o desempenho do SUS**.
             """)
 
-    with col2:
-        st.markdown("### Internações por Faixa Etária")
+    with col2.container(border = True):
+    # ========== CAPÍTULOS DO CID-10 (TOP 5) ==========
+
+        st.markdown(f"<h3 style='text-align: center;'>Top 5 Capítulos do CID-10</h3>", unsafe_allow_html=True)
+
+        df_filtrado['capitulo_cid'] = df_filtrado['diagnostico_principal'].str[0]
+
+        capitulo_map = {
+            'A': 'Doenças infecciosas e parasitárias',
+            'B': 'Doenças infecciosas e parasitárias',
+            'C': 'Neoplasias (tumores)',
+            'D': 'Neoplasias e doenças do sangue',
+            'E': 'Endócrinas e metabólicas',
+            'F': 'Transtornos mentais',
+            'G': 'Sistema nervoso',
+            'H': 'Olhos e ouvidos',
+            'I': 'Sistema circulatório',
+            'J': 'Sistema respiratório',
+            'K': 'Sistema digestivo',
+            'L': 'Pele e tecido subcutâneo',
+            'M': 'Osteomuscular',
+            'N': 'Geniturinário',
+            'O': 'Gravidez e parto',
+            'P': 'Período perinatal',
+            'Q': 'Malformações congênitas',
+            'R': 'Sinais e sintomas gerais',
+            'S': 'Lesões e envenenamentos',
+            'T': 'Lesões e envenenamentos',
+            'V': 'Causas externas',
+            'W': 'Causas externas',
+            'X': 'Causas externas',
+            'Y': 'Causas externas',
+            'Z': 'Fatores sociais e contato'
+        }
+
+        df_filtrado['nome_capitulo'] = df_filtrado['capitulo_cid'].map(capitulo_map).fillna('Outros')
+        capitulo_counts = df_filtrado['nome_capitulo'].value_counts().nlargest(5).reset_index()
+        capitulo_counts.columns = ['Capítulo CID', 'Internações']
+
+        fig_capitulos = px.bar(
+            capitulo_counts.sort_values('Internações'),
+            x='Internações', y='Capítulo CID', orientation='h',
+            color='Internações',
+            color_continuous_scale=['#eff6ff', '#1e3a8a']
+        )
+        fig_capitulos.update_layout(showlegend=False)
+        fig_capitulos.update_coloraxes(showscale=False)
+
+        st.plotly_chart(fig_capitulos, use_container_width=True)
+        
+        with st.expander("📂 O que são capítulos do CID-10?"):
+            st.markdown("""
+            Os **capítulos do CID-10** agrupam doenças por **sistemas do corpo ou categorias clínicas**. Cada capítulo é identificado por uma letra (A a Z) e representa um conjunto de diagnósticos relacionados.
+
+            ### Exemplos de capítulos:
+            - **I**: Doenças do sistema circulatório
+            - **J**: Doenças do sistema respiratório
+            - **E**: Doenças endócrinas, nutricionais e metabólicas
+            - **F**: Transtornos mentais e comportamentais
+
+            Estes agrupamentos ajudam na **tomada de decisão** para políticas públicas e planejamento de saúde.
+            """
+            )
+
+
+
+    
+    # ========== Faixa Etária ==========
+    with st.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Internações por Faixa Etária</h3>", unsafe_allow_html=True)
 
         df_faixa = df_filtrado['faixa_etaria'].value_counts().sort_index().reset_index()
         df_faixa.columns = ['Faixa Etária', 'Internações']
 
         fig_faixa = px.bar(
             df_faixa, x='Faixa Etária', y='Internações',
-            title="Distribuição por Faixa Etária",
             color_discrete_sequence=['#1e40af', '#2563eb', '#60a5fa']
         )
         st.plotly_chart(fig_faixa, use_container_width=True)
-
-    st.markdown("---")
-    
-    # ========== CAPÍTULOS DO CID-10 (TOP 5) ==========
-    st.markdown("### Top 5 Capítulos do CID-10")
-    df_filtrado['capitulo_cid'] = df_filtrado['diagnostico_principal'].str[0]
-
-    capitulo_map = {
-        'A': 'Doenças infecciosas e parasitárias',
-        'B': 'Doenças infecciosas e parasitárias',
-        'C': 'Neoplasias (tumores)',
-        'D': 'Neoplasias e doenças do sangue',
-        'E': 'Endócrinas e metabólicas',
-        'F': 'Transtornos mentais',
-        'G': 'Sistema nervoso',
-        'H': 'Olhos e ouvidos',
-        'I': 'Sistema circulatório',
-        'J': 'Sistema respiratório',
-        'K': 'Sistema digestivo',
-        'L': 'Pele e tecido subcutâneo',
-        'M': 'Osteomuscular',
-        'N': 'Geniturinário',
-        'O': 'Gravidez e parto',
-        'P': 'Período perinatal',
-        'Q': 'Malformações congênitas',
-        'R': 'Sinais e sintomas gerais',
-        'S': 'Lesões e envenenamentos',
-        'T': 'Lesões e envenenamentos',
-        'V': 'Causas externas',
-        'W': 'Causas externas',
-        'X': 'Causas externas',
-        'Y': 'Causas externas',
-        'Z': 'Fatores sociais e contato'
-    }
-
-    df_filtrado['nome_capitulo'] = df_filtrado['capitulo_cid'].map(capitulo_map).fillna('Outros')
-    capitulo_counts = df_filtrado['nome_capitulo'].value_counts().nlargest(5).reset_index()
-    capitulo_counts.columns = ['Capítulo CID', 'Internações']
-
-    fig_capitulos = px.bar(
-        capitulo_counts.sort_values('Internações'),
-        x='Internações', y='Capítulo CID', orientation='h',
-        title='Top 5 Capítulos com Mais Internações',
-        color='Internações',
-        color_continuous_scale=['#eff6ff', '#1e3a8a']
-    )
-    fig_capitulos.update_layout(showlegend=False)
-    fig_capitulos.update_coloraxes(showscale=False)
-    st.plotly_chart(fig_capitulos, use_container_width=True)
-    
-    with st.expander("📂 O que são capítulos do CID-10?"):
-        st.markdown("""
-        Os **capítulos do CID-10** agrupam doenças por **sistemas do corpo ou categorias clínicas**. Cada capítulo é identificado por uma letra (A a Z) e representa um conjunto de diagnósticos relacionados.
-
-        ### Exemplos de capítulos:
-        - **I**: Doenças do sistema circulatório
-        - **J**: Doenças do sistema respiratório
-        - **E**: Doenças endócrinas, nutricionais e metabólicas
-        - **F**: Transtornos mentais e comportamentais
-
-        Estes agrupamentos ajudam na **tomada de decisão** para políticas públicas e planejamento de saúde.
-        """
-        )
-
-    st.markdown("---")
     
     # ========== TABELA COMPLETA ==========
-    st.markdown("### Tabela Completa de Internações Filtradas")
+    with st.container(border = True):
 
-    df_tabela = df_filtrado.copy()
-    df_tabela['Sensível à AB'] = df_tabela['sensivel_atencao_basica'].map({1: "Sim", 0: "Não"})
+        st.markdown(f"<h3 style='text-align: center;'>Tabela Completa de Internações Filtradas</h3>", unsafe_allow_html=True)
 
-    colunas_exibir = ['diagnostico_principal', 'sexo', 'idade_anos', 'municipio_residencia', 'faixa_etaria', 'Sensível à AB']
+        df_tabela = df_filtrado.copy()
+        df_tabela['Sensível à AB'] = df_tabela['sensivel_atencao_basica'].map({1: "Sim", 0: "Não"})
 
-    st.dataframe(df_tabela[colunas_exibir].rename(columns={
-        'diagnostico_principal': 'Diagnóstico',
-        'sexo': 'Sexo',
-        'idade_anos': 'Idade',
-        'municipio_residencia': 'Município',
-        'faixa_etaria': 'Faixa Etária'
-    }), use_container_width=True)
+        colunas_exibir = ['diagnostico_principal', 'sexo', 'idade_anos', 'municipio_residencia', 'faixa_etaria', 'Sensível à AB']
+        st.dataframe(df_tabela[colunas_exibir].rename(columns={
+            'diagnostico_principal': 'Diagnóstico',
+            'sexo': 'Sexo',
+            'idade_anos': 'Idade',
+            'municipio_residencia': 'Município',
+            'faixa_etaria': 'Faixa Etária'
+        }), use_container_width=True)

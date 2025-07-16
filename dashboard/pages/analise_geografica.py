@@ -7,8 +7,7 @@ import sqlite3
 import json
 
 def render(conn):
-
-    st.markdown("## Análise Geográfica")
+    st.markdown(f"<h1 style='text-align: center;'>Análise Geográfica</h1>", unsafe_allow_html=True)
     st.markdown("### Filtros")
     query_all_municipios_map = """
     SELECT codigo AS cod_municipio, nome AS municipio, regiao_saude, populacao
@@ -122,7 +121,7 @@ def render(conn):
     
     st.markdown("---")
     # --- Mapa Interativo com GeoJSON ---
-    st.markdown("### Distribuição de Internações nos Municípios do Paraná")
+    st.markdown(f"<h2 style='text-align: center;'>Distribuição de Internações nos Municípios do Paraná</h2>", unsafe_allow_html=True)
 
     geojson_path = "data/geojson/municipios_pr.json"
 
@@ -200,11 +199,11 @@ def render(conn):
                     name=f'Destaque: {municipio_selecionado}'
                 )
                 fig_map.add_trace(highlight_trace) # Adiciona a camada de destaque ao mapa principal
-                st.plotly_chart(fig_map, use_container_width=True)
+                with st.container(border = True):
+                    st.plotly_chart(fig_map, use_container_width=True)
         else:
             st.warning(f"Não foram encontrados dados para o município: {municipio_selecionado}. Verifique a seleção.")
     else: # Se 'Todos os Municípios' for selecionado
-        st.markdown(f"### Dados Gerais de Internações no Paraná")
         total_internacoes_geral = df_municipios['total_internacoes'].sum()
         total_pacientes_geral = df_municipios['total_pacientes_residentes_internados'].sum()
 
@@ -223,13 +222,14 @@ def render(conn):
                 "Total de pacientes residentes internados",
                 "👥"
             )
-        st.plotly_chart(fig_map, use_container_width=True)
+        with st.container(border = True):
+            st.plotly_chart(fig_map, use_container_width=True)
     
 
-        st.markdown("---")
         col1, col2 = st.columns(2)
-        with col1:
-            st.markdown("### Municípios com Mais Internações")
+        with col1.container(border = True):
+            st.markdown(f"<h3 style='text-align: center;'>Municípios com Mais Internações</h3>", unsafe_allow_html=True)
+
 
             top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
             fig_bar = px.bar(top10,
@@ -244,8 +244,8 @@ def render(conn):
             fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
             st.plotly_chart(fig_bar, use_container_width=True)
 
-        with col2:
-            st.markdown("### Comparativo por Região de Saúde")
+        with col2.container(border = True):
+            st.markdown(f"<h3 style='text-align: center;'>Comparativo por Região de Saúde</h3>", unsafe_allow_html=True)
             df_regioes_filtrado = df_regioes[df_regioes['regiao_saude'] != 'Paraná'].copy()
 
             if not df_regioes_filtrado.empty:
@@ -289,10 +289,8 @@ def render(conn):
             LIMIT 10;
         """
         df_fluxo_destino = pd.read_sql_query(query_fluxo_destino, conn)
+        st.markdown(f"<h3 style='text-align: center;'>Fluxo de Pacientes</h3>", unsafe_allow_html=True)
 
-        st.markdown("---")
-        st.markdown("### Fluxo de Pacientes")
-        
         col8, col9 = st.columns(2)
         with col8:
             if not df_fluxo_destino.empty:

@@ -109,7 +109,8 @@ def render_styled_metric(title, value, help_text, icon=None):
 
 def render_kpis(data):
     """Renderiza KPIs principais em cards estilizados"""
-    st.markdown("### Métricas Principais")
+    st.markdown(f"<h2 style='text-align: center;'>Métricas Principais</h2>", unsafe_allow_html=True)
+
     
     col1, col2, col3, col4 = st.columns(4)
     
@@ -191,28 +192,30 @@ def render_kpis(data):
 
 def render_principais_causas(data):
     """Renderiza gráfico de principais causas"""
-    st.markdown("### Distribuição por Principais Causas")
-    
-    # Top 10 causas mais comuns
-    top_causas = data['diagnostico_principal'].value_counts().head(10)
-    
-    # Gráfico de pizza com tons de azul
-    cores_azuis = [
-        '#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6',
-        '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
-    ]
-    
-    fig = px.pie(
-        values=top_causas.values,
-        names=top_causas.index,
-        title="Top 10 Diagnósticos Mais Frequentes",
-        color_discrete_sequence=cores_azuis
-    )
-    fig.update_layout(height=400)
-    st.plotly_chart(fig, use_container_width=True)
-    
+    st.markdown(f"<h2 style='text-align: center;'>Distribuição por Principais Causas</h2>", unsafe_allow_html=True)
+    with st.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Top Causas Mais Comuns</h3>", unsafe_allow_html=True)
+        
+        # Top 10 causas mais comuns
+        top_causas = data['diagnostico_principal'].value_counts().head(10)
+        
+        # Gráfico de pizza com tons de azul
+        cores_azuis = [
+            '#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6',
+            '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
+        ]
+        
+        fig = px.pie(
+            values=top_causas.values,
+            names=top_causas.index,
+            color_discrete_sequence=cores_azuis
+        )
+        fig.update_layout(height=400)
+        st.plotly_chart(fig, use_container_width=True)
+        
     # Ranking detalhado em cards horizontais
-    st.markdown("### Ranking Detalhado")
+    st.markdown(f"<h2 style='text-align: center;'>Ranking Detalhado</h2>", unsafe_allow_html=True)
+
     
     for i, (diagnostico, casos) in enumerate(top_causas.items(), 1):
         percentual = (casos / len(data) * 100)
@@ -269,275 +272,49 @@ def render_principais_causas(data):
         </div>
         """, unsafe_allow_html=True)
 
-def render_analise_temporal(data):
-    """Renderiza análise temporal"""
-    st.markdown("### Análise Temporal")
-    
-    # Preparar dados temporais
-    data_temp = data.copy()
-    data_temp['periodo'] = data_temp['ano_competencia'].astype(str) + '-' + data_temp['mes_competencia'].astype(str).str.zfill(2)
-    
-    # Agrupar por período
-    internacoes_tempo = data_temp.groupby('periodo').size().reset_index(name='internacoes')
-    valores_tempo = data_temp.groupby('periodo')['valor_total'].sum().reset_index(name='valor_total')
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Gráfico de linha - Internações
-        fig = px.line(
-            internacoes_tempo,
-            x='periodo',
-            y='internacoes',
-            title="Número de Internações por Período",
-            markers=True,
-            color_discrete_sequence=['#2563eb']
-        )
-        fig.update_layout(height=300)
-        fig.update_traces(line_color='#2563eb', marker_color='#1d4ed8')
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        # Gráfico de linha - Valores
-        fig = px.line(
-            valores_tempo,
-            x='periodo',
-            y='valor_total',
-            title="Valor Total por Período",
-            markers=True,
-            color_discrete_sequence=['#1e40af']
-        )
-        fig.update_layout(height=300)
-        fig.update_traces(line_color='#1e40af', marker_color='#1e3a8a')
-        st.plotly_chart(fig, use_container_width=True)
-
-def render_analise_custos(data):
-    """Renderiza análise de custos"""
-    st.markdown("### Análise de Custos")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Distribuição de custos
-        fig = px.histogram(
-            data,
-            x='valor_total',
-            nbins=30,
-            title="Distribuição de Custos das Internações",
-            color_discrete_sequence=['#3b82f6']
-        )
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        # Top 10 diagnósticos mais caros
-        custos_cid = data.groupby('diagnostico_principal')['valor_total'].sum().sort_values(ascending=False).head(10)
-        
-        # Usar gradiente de azuis do mais escuro para o mais claro
-        cores_custos = [
-            '#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6',
-            '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
-        ]
-        
-        fig = px.bar(
-            x=custos_cid.values,
-            y=custos_cid.index,
-            orientation='h',
-            title="Top 10 Diagnósticos por Custo Total",
-            color=custos_cid.values,
-            color_continuous_scale=['#eff6ff', '#1e3a8a']
-        )
-        fig.update_layout(height=300, showlegend=False)
-        fig.update_coloraxes(showscale=False)
-        st.plotly_chart(fig, use_container_width=True)
-
-def render_perfil_demografico(data):
-    """Renderiza perfil demográfico"""
-    st.markdown("### Perfil Demográfico")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Distribuição por idade
-        fig = px.histogram(
-            data,
-            x='idade_anos',
-            nbins=20,
-            title="Distribuição por Idade",
-            color_discrete_sequence=['#3b82f6']
-        )
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        # Distribuição por sexo
-        sexo_counts = data['sexo'].value_counts()
-        
-        fig = px.pie(
-            values=sexo_counts.values,
-            names=sexo_counts.index,
-            title="Distribuição por Sexo",
-            color_discrete_sequence=['#1e40af', '#60a5fa']
-        )
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
-
-def render_tipo_internacao(data):
+    st.markdown("---")
     """Renderiza análise por tipo de internação"""
-    st.markdown("### Análise por Tipo de Internação")
+    st.markdown(f"<h2 style='text-align: center;'>Análise por Tipo de Internação</h2>", unsafe_allow_html=True)
+
     
     col1, col2 = st.columns(2)
     
-    with col1:
+    with col1.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Distribuição por Tipo de Internação</h3>", unsafe_allow_html=True)
+
         # Distribuição por tipo
         tipo_counts = data['carater_internacao'].value_counts()
-        
+
         fig = px.bar(
             x=tipo_counts.index,
             y=tipo_counts.values,
-            title="Distribuição por Tipo de Internação",
             color_discrete_sequence=['#2563eb', '#60a5fa']
         )
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True)
     
-    with col2:
+    with col2.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Custo Médio por Tipo de Internação</h3>", unsafe_allow_html=True)
         # Custo médio por tipo
         custo_tipo = data.groupby('carater_internacao')['valor_total'].mean()
         
         fig = px.bar(
             x=custo_tipo.index,
             y=custo_tipo.values,
-            title="Custo Médio por Tipo de Internação",
             color_discrete_sequence=['#1e40af', '#93c5fd']
         )
         fig.update_layout(height=300)
         st.plotly_chart(fig, use_container_width=True)
 
-def render_tempo_permanencia(data):
-    """Renderiza análise de tempo de permanência"""
-    st.markdown("### Tempo de Permanência")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Distribuição de permanência
-        fig = px.histogram(
-            data,
-            x='dias_permanencia',
-            nbins=30,
-            title="Distribuição de Tempo de Permanência",
-            color_discrete_sequence=['#3b82f6']
-        )
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        # Permanência por faixa etária
-        data_temp = data.copy()
-        data_temp['faixa_etaria'] = pd.cut(data_temp['idade_anos'], 
-                                          bins=[0, 18, 60, 100], 
-                                          labels=['0-18', '19-59', '60+'])
-        
-        perm_idade = data_temp.groupby('faixa_etaria')['dias_permanencia'].mean()
-        
-        fig = px.bar(
-            x=perm_idade.index,
-            y=perm_idade.values,
-            title="Permanência Média por Faixa Etária",
-            color_discrete_sequence=['#1e40af', '#2563eb', '#60a5fa']
-        )
-        fig.update_layout(height=300)
-        st.plotly_chart(fig, use_container_width=True)
 
-def render_top_municipios(data):
-    """Renderiza top municípios"""
-    st.markdown("### Top Municípios")
-    
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Top 10 municípios por quantidade
-        top_munic = data['codigo_municipio_residencia'].value_counts().head(10)
-        
-        fig = px.bar(
-            x=top_munic.values,
-            y=top_munic.index,
-            orientation='h',
-            title="Top 10 Municípios por Quantidade",
-            color=top_munic.values,
-            color_continuous_scale=['#eff6ff', '#1e3a8a']
-        )
-        fig.update_layout(height=300, showlegend=False)
-        fig.update_coloraxes(showscale=False)
-        st.plotly_chart(fig, use_container_width=True)
-    
-    with col2:
-        # Top 10 municípios por custo
-        custo_munic = data.groupby('codigo_municipio_residencia')['valor_total'].sum().sort_values(ascending=False).head(10)
-        
-        fig = px.bar(
-            x=custo_munic.values,
-            y=custo_munic.index,
-            orientation='h',
-            title="Top 10 Municípios por Custo Total",
-            color=custo_munic.values,
-            color_continuous_scale=['#eff6ff', '#1e3a8a']
-        )
-        fig.update_layout(height=300, showlegend=False)
-        fig.update_coloraxes(showscale=False)
-        st.plotly_chart(fig, use_container_width=True)
 
-def render_insights_alertas(data):
-    """Renderiza insights e alertas"""
-    st.markdown("### Insights e Alertas")
+
     
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.markdown("#### 🔍 Insights Principais")
-        
-        # Calcular insights
-        total_internacoes = len(data)
-        valor_total = data['valor_total'].sum()
-        causa_principal = data['diagnostico_principal'].value_counts().index[0] if len(data) > 0 else "N/A"
-        perc_urgencia = (len(data[data['carater_internacao'] == 'Urgência']) / len(data)) * 100 if len(data) > 0 else 0
-        
-        st.info(f"""
-        **Resumo Executivo:**
-        - Total de {total_internacoes:,} internações registradas
-        - Investimento total de R$ {valor_total:,.2f}
-        - Principal causa: {causa_principal}
-        - {perc_urgencia:.1f}% das internações são de urgência
-        """)
-    
-    with col2:
-        st.markdown("#### 🚨 Alertas e Recomendações")
-        
-        # Alertas baseados nos dados
-        alertas = []
-        
-        if perc_urgencia > 70:
-            alertas.append("⚠️ Alto percentual de internações de urgência")
-        
-        custo_medio = data['valor_total'].mean()
-        if custo_medio > 1000:
-            alertas.append("💰 Custo médio por internação elevado")
-        
-        idosos_perc = (len(data[data['idade_anos'] >= 60]) / len(data)) * 100 if len(data) > 0 else 0
-        if idosos_perc > 40:
-            alertas.append("👴 Alto percentual de pacientes idosos")
-        
-        if alertas:
-            for alerta in alertas:
-                st.warning(alerta)
-        else:
-            st.success("✅ Nenhum alerta crítico identificado")
+
 
 def render(data):
     """Renderiza a página de Visão Geral"""
-    
-    st.markdown("## Visão Geral")
+    st.markdown(f"<h1 style='text-align: center;'>Visão Geral</h1>", unsafe_allow_html=True)
     
     # Renderizar filtros
     filters = render_filters()
