@@ -1,0 +1,188 @@
+Você é um especialista em desenvolvimento Python, Streamlit e SQLite. Seu objetivo é ajudar a integrar um chatbot no projeto Streamlit atual. O chatbot deve ser capaz de interpretar pedidos de usuários em linguagem natural, gerar consultas SQL para um banco de dados SQLite existente no projeto, executar essas consultas e exibir os resultados formatados no Streamlit.
+
+Considere que você tem acesso a todos os arquivos e estrutura do projeto atual, incluindo:
+-   **Estrutura de pastas:** Onde estão os arquivos Python (.py) do Streamlit, o arquivo do banco de dados SQLite (.db), etc.
+-   **Schema do banco de dados SQLite:** Nomes das tabelas, colunas e relacionamentos. (Ex: `municipios`, `pacientes`, `internacoes`, `cid_diagnosticos` e suas colunas).
+-   **Código Streamlit existente:** Como as páginas são renderizadas, como as conexões com o banco são feitas, e como os dados são exibidos atualmente.
+
+**OBJETIVO PRINCIPAL:** Criar uma nova página (ou funcionalidade em uma página existente) no Streamlit que contenha um chatbot.
+
+---
+
+### **Instruções Detalhadas para o Chatbot:**
+
+1.  **Criação da Interface do Chatbot no Streamlit:**
+    * Crie uma área onde o usuário possa digitar sua pergunta (um `st.text_input` ou `st.text_area`).
+    * Crie uma área para exibir o histórico da conversa (perguntas do usuário e respostas do chatbot). Use `st.chat_message` para uma boa visualização.
+    * Adicione um botão para enviar a mensagem, ou configure para que o envio ocorra ao pressionar Enter.
+
+2.  **Processamento da Pergunta do Usuário (NLP Básico/Regras):**
+    * **Identificar Intenção:** O chatbot deve tentar entender o que o usuário quer. Comece com intenções comuns, como:
+        * "Listar pacientes com [DOENÇA] em [MUNICÍPIO]."
+        * "Qual a quantidade de internações por [DOENÇA]?"
+        * "Quais as doenças mais comuns em [MUNICÍPIO]?"
+        * "Mostrar dados de [MUNICÍPIO]."
+    * **Extrair Entidades:** A partir da pergunta, extraia os valores-chave como:
+        * `DOENÇA` (referente à coluna `descricao` em `cid_diagnosticos`)
+        * `MUNICÍPIO` (referente à coluna `nome` em `municipios`)
+        * `REGIAO_SAUDE` (referente à coluna `regiao_saude` em `municipios`)
+    * **Abordagem Sugerida:** Para começar, use uma abordagem baseada em **regras e correspondência de padrões de strings** (ex: `if "internacoes por" in pergunta:` ou `if "doença" in pergunta and "municipio" in pergunta:`). Isso é mais simples de implementar do que modelos de NLU completos para um início de projeto. Se a pergunta for complexa demais para as regras, o chatbot deve informar que não entendeu.
+
+3.  **Geração Dinâmica de Consultas SQL:**
+    * Com base na intenção e nas entidades extraídas, construa a consulta SQL apropriada.
+    * **Segurança:** É crucial proteger contra SQL Injection. Sempre use **parâmetros de consulta** (placeholders como `?` para SQLite) e passe os valores separadamente para o método `execute()` do cursor. **Nunca concatene diretamente entradas do usuário na string SQL.**
+    * **Exemplos de SQL esperado:**
+        * Para "Listar pacientes com Diabetes em Londrina":
+            ```sql
+            SELECT
+                p.nome AS Paciente,
+                p.data_nascimento AS Data_Nascimento,
+                m.nome AS Municipio_Residencia,
+                cd.descricao AS Diagnostico_Principal
+            FROM pacientes p
+            JOIN internacoes i ON p.id = i.paciente_id
+            JOIN cid_diagnosticos cd ON i.codigo_diagnostico_principal = cd.codigo
+            JOIN municipios m ON p.codigo_municipio_residencia = m.codigo
+            WHERE cd.descricao LIKE ? AND m.nome = ?
+            LIMIT 10; -- Limitar resultados para não sobrecarregar
+            ```
+        * Para "Quantidade de internações por pneumonia":
+            ```sql
+            SELECT
+                COUNT(i.id) AS Total_Internacoes
+            FROM internacoes i
+            JOIN cid_diagnosticos cd ON i.codigo_diagnostico_principal = cd.codigo
+            WHERE cd.descricao LIKE ?;
+            ```
+
+4.  **Execução da Consulta e Exibição dos Resultados:**
+    * Utilize a conexão SQLite existente (`sqlite3`).
+    * Execute a consulta SQL gerada.
+    * Leia os resultados para um DataFrame Pandas (`pd.read_sql_query`).
+    * **Formatação:** Exiba o DataFrame no Streamlit usando `st.dataframe()`. Se for uma contagem ou um valor único, exiba-o de forma mais amigável (ex: `st.metric()` ou `st.write()`).
+
+5.  **Gerenciamento de Diálogo (Básico):**
+    * Se o chatbot precisar de mais informações (ex: o usuário pediu "pacientes com doença" mas não especificou a doença), ele deve pedir por ela.
+    * Use `st.session_state` para armazenar o histórico da conversa e o estado atual do diálogo.
+
+---
+
+### **Estrutura de Código Sugerida (para `app.py` ou um novo arquivo de página):**
+
+```python
+import streamlit as st
+import sqlite3
+import pandas as pd
+import re # Para expressões regulares, útil para o parser de regras
+
+# Assumindo que a conexão com o banco de dados já está disponível
+# def get_db_connection():
+#     conn = sqlite3.connect('seu_banco.db') # Ajuste o caminho do seu DB
+#     conn.row_factory = sqlite3.Row # Para acessar colunas por nome
+#     return conn
+
+# Se a conexão já é passada como 'conn' na função render, use-a diretamente.
+# Exemplo de função de página (se for uma nova página)
+def chatbot_page(conn):
+    st.title("Chatbot de Consulta de Dados de Saúde")
+
+    # Inicializar histórico do chat na session_state
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    
+    # Exibir mensagens anteriores
+    for message in st.session_state.messages:
+        with st.chat_message(message["role"]):
+            if message["type"] == "text":
+                st.markdown(message["content"])
+            elif message["type"] == "dataframe":
+                st.markdown(message["content_text"]) # Mensagem de contexto
+                st.dataframe(message["content_data"]) # O DataFrame
+
+    # Entrada do usuário
+    user_input = st.chat_input("Pergunte algo sobre os dados (ex: 'pacientes com diabetes em curitiba'):")
+
+    if user_input:
+        # Adicionar mensagem do usuário ao histórico
+        st.session_state.messages.append({"role": "user", "type": "text", "content": user_input})
+        with st.chat_message("user"):
+            st.markdown(user_input)
+
+        with st.chat_message("assistant"):
+            # --- LÓGICA DO CHATBOT ---
+            response_message = "Desculpe, não entendi sua pergunta. Tente algo como 'quantos pacientes com [doença] em [município]?'"
+            result_df = None
+
+            # Exemplo de Regras de NLU e Geração de SQL
+            lower_input = user_input.lower()
+
+            # Padrão 1: Listar pacientes com doença em município
+            match_pacientes_doenca_municipio = re.search(r"pacientes com (.+) em (.+)", lower_input)
+            if match_pacientes_doenca_municipio:
+                doenca = match_pacientes_doenca_municipio.group(1).strip()
+                municipio = match_pacientes_doenca_municipio.group(2).strip()
+                
+                # Exemplo de tratamento para nomes de doença e município (pode precisar de normalização)
+                doenca_like = f"%{doenca.replace('doenca', '')}%" # Remover "doença" se estiver no texto da doença
+                
+                try:
+                    cursor = conn.cursor()
+                    query = """
+                        SELECT
+                            p.nome AS Paciente,
+                            p.data_nascimento AS Data_Nascimento,
+                            m.nome AS Municipio_Residencia,
+                            cd.descricao AS Diagnostico_Principal
+                        FROM pacientes p
+                        JOIN internacoes i ON p.id = i.paciente_id
+                        JOIN cid_diagnosticos cd ON i.codigo_diagnostico_principal = cd.codigo
+                        JOIN municipios m ON p.codigo_municipio_residencia = m.codigo
+                        WHERE cd.descricao LIKE ? AND m.nome = ?
+                        LIMIT 10;
+                    """
+                    cursor.execute(query, (doenca_like, municipio.capitalize())) # capitalize para nome de município
+                    result_df = pd.DataFrame(cursor.fetchall(), columns=[desc[0] for desc in cursor.description])
+                    
+                    if not result_df.empty:
+                        response_message = f"Encontrei os seguintes pacientes com '{doenca}' em '{municipio}':"
+                    else:
+                        response_message = f"Não encontrei pacientes com '{doenca}' em '{municipio}'."
+                except Exception as e:
+                    response_message = f"Ocorreu um erro ao consultar os dados: {e}"
+            
+            # Padrão 2: Quantidade de internações por doença
+            match_count_doenca = re.search(r"quant(o|a|os|as) internações por (.+)", lower_input)
+            if match_count_doenca:
+                doenca = match_count_doenca.group(2).strip()
+                doenca_like = f"%{doenca}%"
+                
+                try:
+                    cursor = conn.cursor()
+                    query = """
+                        SELECT
+                            COUNT(i.id) AS Total_Internacoes
+                        FROM internacoes i
+                        JOIN cid_diagnosticos cd ON i.codigo_diagnostico_principal = cd.codigo
+                        WHERE cd.descricao LIKE ?;
+                    """
+                    cursor.execute(query, (doenca_like,))
+                    count_result = cursor.fetchone()[0]
+                    response_message = f"Há um total de **{count_result}** internações relacionadas a '{doenca}'."
+                except Exception as e:
+                    response_message = f"Ocorreu um erro ao consultar os dados: {e}"
+
+            # --- FIM DA LÓGICA DO CHATBOT ---
+
+            # Exibir a resposta e/ou o DataFrame
+            if result_df is not None and not result_df.empty:
+                st.markdown(response_message)
+                st.dataframe(result_df)
+                st.session_state.messages.append({"role": "assistant", "type": "dataframe", "content_text": response_message, "content_data": result_df})
+            else:
+                st.markdown(response_message)
+                st.session_state.messages.append({"role": "assistant", "type": "text", "content": response_message})
+
+# Para integrar na sua app principal (app.py):
+# import chatbot_module # se você criar um arquivo separado para o chatbot
+# conn = get_db_connection() # ou como você já está obtendo a conexão
+# chatbot_module.chatbot_page(conn) # Chamar a função da página do chatbot
