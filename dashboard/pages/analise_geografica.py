@@ -1,4 +1,5 @@
-from dashboard.pages.causas_principais import render_styled_metric
+from datetime import datetime
+from dashboard.pages.causas_principais import render_styled_metric # Certifique-se que render_styled_metric existe neste caminho e é importável
 import streamlit as st
 import pandas as pd
 import plotly.express as px
@@ -18,6 +19,9 @@ def render(conn):
 
     col_filters1, col_filters2 = st.columns(2)
 
+    # Definindo a variável antes do bloco if
+    cod_municipio_selecionado = None # Inicializa com None para evitar UnboundLocalError
+
     with col_filters1:
         query_all_municipios_names = """
             SELECT DISTINCT nome FROM municipios ORDER BY nome;
@@ -32,6 +36,7 @@ def render(conn):
 
         municipio_filter_for_causas = ""
         municipio_join_for_causas = ""
+
         if municipio_selecionado != 'Todos os Municípios':
             query_municipio_codigo = f"SELECT codigo FROM municipios WHERE nome = '{municipio_selecionado.replace("'", "''")}'"
             df_municipio_codigo = pd.read_sql_query(query_municipio_codigo, conn)
@@ -62,9 +67,7 @@ def render(conn):
             options=causa_options,
             key="causa_cid_filter"
         )
-
     
-
     selected_cid_id = None
     if selected_causa_desc != 'Todas as Causas':
         selected_cid_row = df_causas[df_causas['descricao'] == selected_causa_desc]
@@ -76,9 +79,6 @@ def render(conn):
     if selected_cid_id is not None:
         cid_filter_join = "JOIN cid_diagnosticos c ON i.codigo_diagnostico_principal = c.codigo"
         cid_filter_where = f"AND c.codigo = '{selected_cid_id}'"
-
-    
-    
     
     # Consulta com código do município e contagem de internações
     query_contagem = f"""
@@ -101,7 +101,7 @@ def render(conn):
     df_municipios['cod_municipio'] = df_municipios['cod_municipio'].astype(str).str.zfill(6)
 
     df_mapa_final = pd.merge(df_all_municipios_map, df_municipios[['cod_municipio', 'total_internacoes']], 
-                         on='cod_municipio', how='left')
+                             on='cod_municipio', how='left')
     df_mapa_final['total_internacoes'] = df_mapa_final['total_internacoes'].fillna(0) # Preenche NaN com 0 para coloração
 
     # Consulta de regiões
@@ -195,7 +195,7 @@ def render(conn):
                     colorscale=[[0, 'rgba(0,0,0,0)'], [1, 'rgba(0,0,0,0)']], # Transparente no preenchimento
                     marker_line_width=4,    # Espessura da linha (contorno)
                     marker_line_color='blue', # Cor da linha
-                    showscale=False,        # Não mostra a barra de cores para o destaque
+                    showscale=False,        # Não mostra a barra de colors para o destaque
                     name=f'Destaque: {municipio_selecionado}'
                 )
                 fig_map.add_trace(highlight_trace) # Adiciona a camada de destaque ao mapa principal
@@ -226,52 +226,137 @@ def render(conn):
             st.plotly_chart(fig_map, use_container_width=True)
     
 
-        col1, col2 = st.columns(2)
-        with col1.container(border = True):
-            st.markdown(f"<h3 style='text-align: center;'>Municípios com Mais Internações</h3>", unsafe_allow_html=True)
+    col1, col2 = st.columns(2)
+    with col1.container(border = True):
+        st.markdown(f"<h3 style='text-align: center;'>Municípios com Mais Internações</h3>", unsafe_allow_html=True)
 
 
-            top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
-            fig_bar = px.bar(top10,
-                             x='total_internacoes',
-                             y='municipio',
-                             orientation='h',
-                             color='total_internacoes',
-                             color_continuous_scale=['#eff6ff', '#1e3a8a'],
-                             labels={'total_internacoes': 'Internações'}
-                            )
-            fig_bar.update_layout(coloraxis_showscale=False)
-            fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
-            st.plotly_chart(fig_bar, use_container_width=True)
+        top10 = df_municipios.sort_values("total_internacoes", ascending=False).head(10)
+        fig_bar = px.bar(top10,
+                         x='total_internacoes',
+                         y='municipio',
+                         orientation='h',
+                         color='total_internacoes',
+                         color_continuous_scale=['#eff6ff', '#1e3a8a'],
+                         labels={'total_internacoes': 'Internações'}
+                        )
+        fig_bar.update_layout(coloraxis_showscale=False)
+        fig_bar.update_layout(yaxis={'categoryorder':'total ascending'} )
+        st.plotly_chart(fig_bar, use_container_width=True)
 
-        with col2.container(border = True):
-            st.markdown(f"<h3 style='text-align: center;'>Comparativo por Região de Saúde</h3>", unsafe_allow_html=True)
-            df_regioes_filtrado = df_regioes[df_regioes['regiao_saude'] != 'Paraná'].copy()
-
-            if not df_regioes_filtrado.empty:
-                # Cores em tons de azul para consistência
-                cores_azuis = [
-                    '#1e3a8a', '#1e40af', '#1d4ed8', '#2563eb', '#3b82f6',
-                    '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff'
-                ]
-                fig_regioes_pie = px.pie(
-                    df_regioes_filtrado,
-                    values='total_internacoes_regiao',
-                    names='regiao_saude',
-                    title='',
-                    hole=0.5,
-                    color_discrete_sequence=cores_azuis
-                )
-                st.plotly_chart(fig_regioes_pie, use_container_width=True)
-            else:
-                st.info("Não há dados de internações para comparar entre as regiões de saúde com os filtros atuais.")
+    with col2.container(border=True):
+        st.markdown(f"<h3 style='text-align: center;'>Internações por Região de Residência (Excluindo Paraná)</h3>", unsafe_allow_html=True)
 
 
+        total_internacoes_todas_regioes = df_regioes['total_internacoes_regiao'].sum()
 
 
+        total_internacoes_fora_pr_para_titulo = df_regioes[
+            df_regioes['regiao_saude'].astype(str).str.startswith("Outros Estados (")
+        ]['total_internacoes_regiao'].sum()
+
+        percentual_fora_pr = 0
+        if total_internacoes_todas_regioes > 0:
+            percentual_fora_pr = (total_internacoes_fora_pr_para_titulo / total_internacoes_todas_regioes) * 100
+
+
+        df_rosca_final = df_regioes[df_regioes['regiao_saude'] != 'Paraná'].copy()
+
+
+        titulo_rosca = f"Internaçoes:{total_internacoes_fora_pr_para_titulo}"
+        if total_internacoes_todas_regioes > 0:
+            titulo_rosca += f"(Aprox. {percentual_fora_pr:.1f}% de pacientes de fora do PR)"
+        else:
+            titulo_rosca += "(Sem dados de regiões para os filtros atuais)"
+
+        if not df_rosca_final.empty and total_internacoes_todas_regioes > 0:
+            cores_azuis_rosca = [
+                '#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff', '#cbd5e1' 
+            ]
+            fig_regioes_pie = px.pie(
+                df_rosca_final, 
+                values='total_internacoes_regiao',
+                names='regiao_saude', 
+                title=titulo_rosca, 
+                hole=0.5, 
+                color_discrete_sequence=cores_azuis_rosca 
+            )
+            
+            fig_regioes_pie.update_traces(textinfo='percent')
+            st.plotly_chart(fig_regioes_pie, use_container_width=True)
+        else:
+            st.info("Não há dados de internações para comparar entre as regiões de saúde (exceto 'Paraná') com os filtros atuais ou o total de internações é zero.")
+
+
+    with st.container(border=True):
+        st.markdown(f"<h3 style='text-align: center;'>Distribuição da Idade dos Pacientes por Faixa Etária</h3>", unsafe_allow_html=True)
+
+
+        # Reutiliza current_month_day ou cria um novo para evitar confusão de escopo
+        current_month_day_box = datetime.now().strftime('%m%d')
+
+        query_idades = f"""
+            SELECT
+                CAST(strftime('%Y', 'now') - SUBSTR(p.data_nascimento, 1, 4) -
+                     (SUBSTR(p.data_nascimento, 5, 4) > '{current_month_day_box}') AS INTEGER) AS idade
+            FROM pacientes p
+            JOIN internacoes i ON i.paciente_id = p.id
+            JOIN municipios m ON p.codigo_municipio_residencia = m.codigo
+            {cid_filter_join}
+            WHERE p.data_nascimento IS NOT NULL AND LENGTH(p.data_nascimento) = 8
+            {cid_filter_where}
+            {f"AND m.codigo = '{cod_municipio_selecionado}'" if cod_municipio_selecionado else ""}
+            ;
+        """
+        df_idades = pd.read_sql_query(query_idades, conn)
+
+        if not df_idades.empty:
+            df_idades = df_idades[(df_idades['idade'] >= 0) & (df_idades['idade'] <= 120)]
+
+            bins = [0, 11, 17, 24, 34, 44, 54, 64, 74, 120] 
+            labels = [
+                '0-11 anos (Crianças)',
+                '12-17 anos (Adolescentes)',
+                '18-24 anos (Jovens Adultos)',
+                '25-34 anos (Adultos Jovens)',
+                '35-44 anos (Adultos)',
+                '45-54 anos (Meia-idade)',
+                '55-64 anos (Idosos Jovens)',
+                '65-74 anos (Idosos)',
+                '75+ anos (Idosos Avançados)'
+            ]
+
+            df_idades['faixa_etaria'] = pd.cut(df_idades['idade'], bins=bins, labels=labels, right=True, include_lowest=True)
+            df_idades['faixa_etaria'] = pd.Categorical(df_idades['faixa_etaria'], categories=labels, ordered=True)
+
+            # Aplicação da paleta de cores azuis para o boxplot
+            fig_idade_boxplot = px.box(
+                df_idades,
+                x='faixa_etaria', 
+                y='idade',
+                title='', 
+                labels={'faixa_etaria': 'Faixa Etária', 'idade': 'Idade do Paciente'},
+                points='outliers', 
+                color='faixa_etaria', 
+                category_orders={"faixa_etaria": labels},
+                color_discrete_sequence=['#1e3a8a', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#bfdbfe', '#dbeafe', '#eff6ff', '#cbd5e1'] # Exemplo de paleta
+            )
+            
+            fig_idade_boxplot.update_layout(
+                xaxis_title='Faixa Etária',
+                yaxis_title='Idade do Paciente',
+                xaxis_tickangle=-45 
+            )
+
+            st.plotly_chart(fig_idade_boxplot, use_container_width=True)
+        else:
+            st.info("Nenhum dado de idade encontrado para os filtros selecionados.")
+            
     # --- Fluxo de Pacientes (apenas se um município específico for selecionado) ---
     if municipio_selecionado != 'Todos os Municípios':
-        
+        # Aqui, cod_municipio_selecionado JÁ ESTÁ DEFINIDO pelo bloco acima
+        # Portanto, não precisamos nos preocupar com ele ser None.
+            
         query_fluxo_destino = f"""
             SELECT
                 mo.nome AS municipio_origem,
@@ -289,26 +374,6 @@ def render(conn):
             LIMIT 10;
         """
         df_fluxo_destino = pd.read_sql_query(query_fluxo_destino, conn)
-        st.markdown(f"<h3 style='text-align: center;'>Fluxo de Pacientes</h3>", unsafe_allow_html=True)
-
-        col8, col9 = st.columns(2)
-        with col8:
-            if not df_fluxo_destino.empty:
-                fig_fluxo_destino = px.bar(df_fluxo_destino,
-                                           x='municipio_origem',
-                                           y='total_internacoes_aqui',
-                                           orientation='v',
-                                           labels={'total_internacoes_aqui': 'Total de Internações', 'municipio_origem': 'Município de Origem'},
-                                           color='total_internacoes_aqui',
-                                           color_continuous_scale=['#eff6ff', '#1e3a8a'])
-                fig_fluxo_destino.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.markdown(f"#### Origem de Pacientes Internados em {municipio_selecionado}")
-                st.plotly_chart(fig_fluxo_destino, use_container_width=True)
-            else:
-                st.info(f"Não há registros de pacientes de outros municípios internados em {municipio_selecionado}.")
-
-        
-        
 
         query_fluxo_origem = f"""
             SELECT
@@ -328,22 +393,64 @@ def render(conn):
             LIMIT 10;
         """
         df_fluxo_origem = pd.read_sql_query(query_fluxo_origem, conn)
-        with col9:
-            if not df_fluxo_origem.empty:
-                
+
+        has_destino_data = not df_fluxo_destino.empty
+        has_origem_data = not df_fluxo_origem.empty
+
+        if has_destino_data and has_origem_data:
+            col_fluxo_d, col_fluxo_o = st.columns(2)
+            
+            with col_fluxo_d.container(border = True): 
+                st.markdown(f"<h3 style='text-align: center;'>Origem de Pacientes Internados em {municipio_selecionado}</h3>", unsafe_allow_html=True)
+                fig_fluxo_destino = px.bar(df_fluxo_destino,
+                                           x='municipio_origem',
+                                           y='total_internacoes_aqui',
+                                           orientation='v',
+                                           labels={'total_internacoes_aqui': 'Total de Internações', 'municipio_origem': 'Município de Origem'},
+                                           color='total_internacoes_aqui',
+                                           color_continuous_scale=['#eff6ff', '#1e3a8a']) # Aplicando a paleta de cores
+                fig_fluxo_destino.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_fluxo_destino, use_container_width=True)
+            
+            with col_fluxo_o.container(border = True): 
+                st.markdown(f"<h3 style='text-align: center;'>Destino de Pacientes Residentes de {municipio_selecionado}</h3>", unsafe_allow_html=True)
                 fig_fluxo_origem = px.bar(df_fluxo_origem,
                                            x='municipio_internacao',
                                            y='total_internacoes_fora',
                                            orientation='v',
                                            labels={'total_internacoes_fora': 'Total de Internações', 'municipio_internacao': 'Município de Internação'},
                                            color='total_internacoes_fora',
-                                           color_continuous_scale=['#eff6ff', '#2563eb'])
+                                           color_continuous_scale=['#eff6ff', '#1e3a8a']) # Aplicando a paleta de cores
                 fig_fluxo_origem.update_layout(yaxis={'categoryorder':'total ascending'})
-                st.markdown(f"#### Destino de Pacientes Residentes de {municipio_selecionado}")
                 st.plotly_chart(fig_fluxo_origem, use_container_width=True)
-            else:
-                st.info(f"Não há registros de pacientes residentes de {municipio_selecionado} internados em outros municípios.")
 
+        elif has_destino_data:
+            with st.container(border = True):
+                st.markdown(f"<h3 style='text-align: center;'>Origem de Pacientes Internados em {municipio_selecionado}</h3>", unsafe_allow_html=True)
+                fig_fluxo_destino = px.bar(df_fluxo_destino,
+                                        x='municipio_origem',
+                                        y='total_internacoes_aqui',
+                                        orientation='v',
+                                        labels={'total_internacoes_aqui': 'Total de Internações', 'municipio_origem': 'Município de Origem'},
+                                        color='total_internacoes_aqui',
+                                        color_continuous_scale=['#eff6ff', '#1e3a8a']) # Aplicando a paleta de cores
+                fig_fluxo_destino.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_fluxo_destino, use_container_width=True)
 
-
-#estou tendo um problema com o filtro de sexo, ao selecionar as opções do filtro, ele entra em um loading infinito, olhei as queries, e está tudo ok, quando uso os outros filtros(municipio e causas), eles funcionam corretamente, agora quando uso o de sexo, ele buga
+        elif has_origem_data:
+            with st.container(border = True):
+                st.markdown(f"<h3 style='text-align: center;'>Destino de Pacientes Residentes de {municipio_selecionado}</h3>", unsafe_allow_html=True)
+                fig_fluxo_origem = px.bar(df_fluxo_origem,
+                                        x='municipio_internacao',
+                                        y='total_internacoes_fora',
+                                        orientation='v',
+                                        labels={'total_internacoes_fora': 'Total de Internações', 'municipio_internacao': 'Município de Internação'},
+                                        color='total_internacoes_fora',
+                                        color_continuous_scale=['#eff6ff', '#1e3a8a']) # Aplicando a paleta de cores
+                fig_fluxo_origem.update_layout(yaxis={'categoryorder':'total ascending'})
+                st.plotly_chart(fig_fluxo_origem, use_container_width=True)
+        else:
+            st.info(f"Não há registros de fluxo de pacientes para {municipio_selecionado} com os filtros atuais.")
+    
+    elif municipio_selecionado == 'Todos os Municípios':
+        st.info("Selecione um município específico para ver os gráficos de fluxo de pacientes.")
