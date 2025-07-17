@@ -25,12 +25,16 @@ except ImportError as e:
     print("❌ DEBUG: Execute: pip install google-generativeai>=0.5.0")
 
 # Configurar API do Gemini
-GEMINI_API_KEY = "AIzaSyC2b5xyyXkZDu_8AcVVjIlFxUFP9QM8eZU"
-if GEMINI_AVAILABLE:
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    print("⚠️  DEBUG: GEMINI_API_KEY não encontrada! Configure no arquivo .env")
+    GEMINI_API_KEY = "sua_chave_aqui"  # Placeholder - não funcionará
+
+if GEMINI_AVAILABLE and GEMINI_API_KEY != "sua_chave_aqui":
     genai.configure(api_key=GEMINI_API_KEY)
     print("✅ DEBUG: API do Gemini configurada")
 else:
-    print("❌ DEBUG: API do Gemini não pode ser configurada - biblioteca não disponível")
+    print("❌ DEBUG: API do Gemini não pode ser configurada - verifique a chave da API")
 
 def get_database_connection():
     """Conecta ao banco de dados SQLite"""
