@@ -3,7 +3,7 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, IsolationForest
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier, IsolationForest, GradientBoostingRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score, classification_report, confusion_matrix
 from sklearn.preprocessing import LabelEncoder, StandardScaler
@@ -241,7 +241,7 @@ def modelo_predicao_permanencia(data):
     # Botão estilizado
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn2:
-        fazer_predicao = st.button("🔮 Fazer Predição", key="pred_permanencia", use_container_width=True)
+        fazer_predicao = st.button("Fazer Predição", key="pred_permanencia", use_container_width=True)
     
     if fazer_predicao:
         with st.spinner("Treinando modelo e fazendo predição..."):
@@ -266,7 +266,7 @@ def modelo_predicao_permanencia(data):
             # Treinar modelo
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             
-            model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=10)
+            model = GradientBoostingRegressor(n_estimators=100, random_state=42, max_depth=6, learning_rate=0.1)
             model.fit(X_train, y_train)
             
             # Predições para métricas
@@ -374,7 +374,7 @@ def modelo_predicao_custos(data):
     # Botão estilizado
     col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
     with col_btn2:
-        fazer_predicao = st.button("💰 Calcular Custo Estimado", key="pred_custos", use_container_width=True)
+        fazer_predicao = st.button("Calcular Custo Estimado", key="pred_custos", use_container_width=True)
     
     if fazer_predicao:
         with st.spinner("Treinando modelo e calculando custo..."):
@@ -399,7 +399,7 @@ def modelo_predicao_custos(data):
             # Treinar modelo
             X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
             
-            model = RandomForestRegressor(n_estimators=100, random_state=42, max_depth=12)
+            model = GradientBoostingRegressor(n_estimators=100, random_state=42, max_depth=8, learning_rate=0.1)
             model.fit(X_train, y_train)
             
             # Predições para métricas
@@ -761,7 +761,7 @@ def render(data):
     with st.expander("Informações Técnicas"):
         st.markdown("""
         **Modelos Utilizados:**
-        - Random Forest (Regressão e Classificação)
+        - Gradient Boosting (Regressão otimizada - melhor performance identificada)
         - Isolation Forest (Detecção de Anomalias)
         - Logistic Regression (Classificação Binária)
         
@@ -775,4 +775,9 @@ def render(data):
         - Variáveis: idade, diagnóstico, tipo de internação, valores, etc.
         - Período: Janeiro a Março 2025
         - Treinamento acontece a cada predição para garantir dados atualizados
+        
+        **Gradient Boosting:**
+        - Algoritmo ensemble que combina múltiplos modelos fracos
+        - Melhor performance para predição de permanência e custos
+        - Parâmetros otimizados: 100 estimadores, profundidade 6-8, taxa de aprendizado 0.1
         """)

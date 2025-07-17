@@ -13,8 +13,8 @@ from pages import (
     causas_principais,
     analise_geografica,
     gestao_recursos,
-    recomendacoes,
-    machine_learning
+    machine_learning,
+    chatbot
 )
 
 # Configuração da página
@@ -116,9 +116,9 @@ def navigation():
         "Visão Geral",
         "Causas Principais", 
         "Análise Geográfica",
-        "Machine Learning",
         "Gestão de Recursos",
-        "Recomendações"
+        "Machine Learning",
+        "Chatbot"
     ]
     
     # Inicializa o estado da sessão se não existir
@@ -158,12 +158,12 @@ def main():
             causas_principais.render(data)
         elif selected_page == "Análise Geográfica":
             analise_geografica.render(get_database_connection())
-        elif selected_page == "Machine Learning":
-            machine_learning.render(data)
         elif selected_page == "Gestão de Recursos":
             gestao_recursos.render(data)
-        elif selected_page == "Recomendações":
-            recomendacoes.render(data)
+        elif selected_page == "Machine Learning":
+            machine_learning.render(data)
+        elif selected_page == "Chatbot":
+            chatbot.render(data)
             
     except Exception as e:
         st.error(f"Erro ao carregar dados: {str(e)}")
