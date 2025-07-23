@@ -118,7 +118,7 @@ def navigation():
         "Análise Geográfica",
         "Machine Learning",
         "Gestão de Recursos",
-        "Recomendações"
+        "Chatbot"
     ]
     
     # Inicializa o estado da sessão se não existir
@@ -162,7 +162,7 @@ def main():
             machine_learning.render(data)
         elif selected_page == "Gestão de Recursos":
             gestao_recursos.render(data)
-        elif selected_page == "Recomendações":
+        elif selected_page == "Chatbot":
             recomendacoes.render(data)
             
     except Exception as e:
